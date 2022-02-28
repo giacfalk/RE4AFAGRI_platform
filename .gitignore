@@ -9,3 +9,9 @@ mled/country_studies/rwanda/mled_inputs/Rwanda_clusters/clusters.dbf
 mled/country_studies/rwanda/mled_inputs/Rwanda_clusters/clusters.prj
 mled/country_studies/rwanda/mled_inputs/Rwanda_clusters/clusters.shp
 mled/country_studies/rwanda/mled_inputs/Rwanda_clusters/clusters.shx
+mled/.Rhistory
+*.tif
+*.xml
+*.gpkg
+online_platform/GC2-Vidi.txt
+online_platform/Tableau_trial_link.url

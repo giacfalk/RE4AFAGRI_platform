@@ -127,3 +127,5 @@ clusters$profit_yearly_capita <- clusters$profit_yearly / clusters$pop
 
 # 9) Paybacktime of investment in each cluster (in years)
 clusters$PBT = clusters$total_system_cost / clusters$tt_ddvl
+
+saveRDS(clusters, "clusters_economic_revenues.R")

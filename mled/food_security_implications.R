@@ -105,3 +105,5 @@ clusters$fats_newly_fed_people <- clusters$fats_gain_total /  fatsg_yearly_need
 clusters$calories_gain_capita_day <- clusters$calories_gain_total / ifelse(clusters$pop==0, NA, clusters$pop) / 365
 clusters$proteins_gain_capita_day <- clusters$proteins_gain_total / ifelse(clusters$pop==0, NA, clusters$pop) / 365
 clusters$fats_gain_capita_day <- clusters$fats_gain_total / ifelse(clusters$pop==0, NA, clusters$pop) / 365
+
+saveRDS(clusters, "clusters_food_security.R")

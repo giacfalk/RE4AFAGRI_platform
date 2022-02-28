@@ -77,4 +77,4 @@ clusters$totalpumpcost <- mapply(nninterp, cl/clusters$npumps, clusters$gr_wat_d
 clusters$totalpumpcost <- ifelse(is.na(clusters$totalpumpcost), 0, clusters$totalpumpcost)
 clusters$totalpumpcost <- ifelse(clusters$totalpumpcost<0, 0, clusters$totalpumpcost)
 
-write_rds(clusters, "clusters_with_data_3.Rds")
+saveRDS(clusters, "clusters_pumps_installation_cost.R")

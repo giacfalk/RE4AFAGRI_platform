@@ -187,3 +187,5 @@ clusters$batterysize_kwh[ncls] = kwh_battery
 # mean(clusters$totalcost[clusters$totalcost!=0], na.rm=T)
 # summary(clusters$pvsize_kw[clusters$pvsize_kw!=0])
 # summary(clusters$batterysize_kwh[clusters$batterysize_kwh!=0])
+
+saveRDS(clusters, "clusters_energy_costs.R")

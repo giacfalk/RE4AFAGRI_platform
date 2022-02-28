@@ -47,9 +47,11 @@ national_official_population = 18400000 # number of people
 national_official_elrate = 0.43 # national residential electricity access rate
 national_official_population_without_access = national_official_population- (national_official_population*national_official_elrate) # headcount of people without access
 
+urban_hh_size <- 3.5
+rural_hh_size <- 4.5
+
 # Planning horizon parameters
 today = 2022
-planning_year = 2050
 planning_horizon = planning_year - today
 discount_rate = 0.15 
 
@@ -57,7 +59,7 @@ discount_rate = 0.15
 threshold_surfacewater_distance = 5000 # (m): distance threshold which discriminates if groundwater pumping is necessary or a surface pump is enough # REF:
 threshold_groundwater_pumping = 50 # (m): maximum depth at which the model allows for water pumping: beyond it, no chance to install the pump # REF:
 
-# maxflow of a pump in m3/s
+# boundaries for the flow of irrigation pumps, in m3/s
 maxflow_boundaries <- c(0.000277778, 0.00277778) #i.e. 1-10 m3/h
 
 # Energy efficiency improvement factors for appliances (% per year)
@@ -97,6 +99,15 @@ pipe_diameter = 0.8 # m
 fuel_consumption = 15 # (l/h) # REF: OnSSET
 fuel_cost = 1 # (USD/l) # baseline, then adapted based on distance to city
 truck_bearing_t = 15 # (tons) # REF: https://en.wikipedia.org/wiki/Dump_truck
+
+# Healthcare and education facilities assumptions
+beds_tier2 <- 45
+beds_tier3 <- 150
+beds_tier4 <- 450
+
+pupils_per_school <- 500
+
+threshold_community_elec <- 0.75
 
 #####################
 # Assumed load curves
@@ -148,7 +159,9 @@ hc_5_app_cost = 611450
 ##########
 # Country-specific data
 
-clusters <- read_sf(find_it("clusters.shp"))
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
+
+clusters$elrate <- clusters$elecpop_start_worldpop/clusters$pop_start_worldpop
 
 clusters_nest <- read_sf(find_it("Zambia_NEST_delineation.shp"))
 
@@ -160,94 +173,113 @@ gadm2 = read_rds(find_it(paste0('gadm36_' , countryiso3 , '_2_sf.rds')))
 # Define extent of country analysed
 ext = extent(gadm0)
 
-if (scenario == "baseline"){
+#####################
+# Current gridded data
+#####################
+
+# gridded population (current)
+population_baseline <- stack(find_it("ZMB_population_v1_0_gridded.tif"))
+population_baseline <- rgis::mask_raster_to_polygon(population_baseline, gadm0)
+
+# gridded gdp_baseline (current)
+gdp_baseline <- stack(find_it("gdp_ssp2soc_10km_2010-2100.nc"))[[2]]
+gdp_baseline <- rgis::mask_raster_to_polygon(gdp_baseline, gadm0)
+
+# gridded urbanisation (current)
+urbanization_baseline <- raster(find_it("GHS_SMOD_POP2015_GLOBE_R2019A_54009_1K_V2_0.tif"))
+urbanization_baseline <- rgis::mask_raster_to_polygon(urbanization_baseline, gadm0)
+
+# current and future cropping patterns
+cropping_baseline = ncdf4::nc_open(find_it(paste0(rcp, 'soc_miroc5_landuse-15crops_annual_2006_2099.nc')))
+variables = names(cropping_baseline[['var']])[c(2:23)]
+ncdf4::nc_close(cropping_baseline)
+cropping_baseline =  lapply(variables, function(X){stack(find_it(paste0(rcp, "soc_miroc5_landuse-15crops_annual_2006_2099.nc")), varname=X)[[15]]})
+
+# groundwater recharge (baseline)
+qr_baseline <- find_it(stack(paste0("lpjml_gfdl-esm2m_ewembi_", rcp, "soc_co2_qr_global_monthly_2006_2099.nc4")))
+
+#####################
+# Irrigation needs (source: soft-link from WaterCROP)
+#####################
+
+rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = T, pattern = "rainfed", recursive=T)
+
+#####################
+# Future gridded data and project data
+#####################
+
+source("projector.R")
+
+#####################
+# residential appliances ownership and usage (representative monthly consumption)#####################
+
+for (i in 1:12){
+  assign(paste0('rur1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Rural/Outputs/Tier-1/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_rur1*planning_horizon))) 
   
-    # gridded population (source: GHS)
-  population <- raster(find_it("GHS_POP_E2015_GLOBE_R2019A_4326_30ss_V1_0.tif"))
-  population <- rgis::mask_raster_to_polygon(population, gadm0)
+  assign(paste0('rur2' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Rural/Outputs/Tier-2/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_rur2*planning_horizon))) 
   
-  # climate data (source: TerraClimate)
-  pet = stack(find_it("TerraClimate_pet_2015.nc"))
-  ppt = stack(find_it("TerraClimate_ppt_2015.tif"))
-  soil = stack(find_it("TerraClimate_soil_2015.nc"))
+  assign(paste0('rur3' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Rural/Outputs/Tier-3/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_rur3*planning_horizon))) 
   
-  # groundwater recharge (source: soft-link from WaterCROP)
-  rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = T, pattern = "rainfed", recursive=T)
+  assign(paste0('rur4' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Rural/Outputs/Tier-4/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_rur4*planning_horizon))) 
   
-  # groundwater recharge (source: ISIMIP)
-    s <- stack(paste0(input_folder, "lpjml_gfdl-esm2m_ewembi_historical_histsoc_co2_qr_global_monthly_1861_2005.nc4"))
-    
-    # residential appliances ownership and usage 
-    
-    for (i in 1:12){
-      assign(paste0('rur1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Rural/Outputs/Tier-1/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('rur2' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Rural/Outputs/Tier-2/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('rur3' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Rural/Outputs/Tier-3/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('rur4' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Rural/Outputs/Tier-4/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('rur5' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Rural/Outputs/Tier-5/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-    }
-    
-    for (i in 1:12){
-      assign(paste0('urb1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Urban/Outputs/Tier-1/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('urb2' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Urban/Outputs/Tier-2/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('urb3' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Urban/Outputs/Tier-3/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('urb4' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Urban/Outputs/Tier-4/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-      
-      assign(paste0('urb5' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_households/Urban/Outputs/Tier-5/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-    
-    # healthcare and education appliances ownership and usage 
-  
-      for (i in 1:12){
-        assign(paste0('health1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_services/1.Health/Dispensary/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-        
-        assign(paste0('health2' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_services/1.Health/HealthCentre/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-        
-        assign(paste0('health3' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_services/1.Health/SubCountyH/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) 
-        
-        assign(paste0('health4' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_services/1.Health/SubCountyH/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)*1.3/1000)) 
-        
-        assign(paste0('health5' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_services/1.Health/SubCountyH/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)*1.6/1000)) 
-        
-      }
-      
-      
-      for (i in 1:12){
-        assign(paste0('edu' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , 'ramp/RAMP_services/2.School/Output/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)/1000)) #/10 schools simulated 
-        
-      }
-      
-            
-    }
-    
+  assign(paste0('rur5' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Rural/Outputs/Tier-5/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_rur5*planning_horizon))) 
   
 }
+
+for (i in 1:12){
+  assign(paste0('urb1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Urban/Outputs/Tier-1/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_urb1*planning_horizon))) 
+  
+  assign(paste0('urb2' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Urban/Outputs/Tier-2/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_urb2*planning_horizon))) 
+  
+  assign(paste0('urb3' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Urban/Outputs/Tier-3/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_urb3*planning_horizon))) 
+  
+  assign(paste0('urb4' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Urban/Outputs/Tier-4/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_urb4*planning_horizon))) 
+  
+  assign(paste0('urb5' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_households/Urban/Outputs/Tier-5/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000) * (1-eff_impr_urb5*planning_horizon))) 
+  
+ }
+
+  # healthcare and education appliances ownership and usage 
+  
+  for (i in 1:12){
+    assign(paste0('health1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/1.Health/Dispensary/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000))) 
+    
+    assign(paste0('health2' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/1.Health/HealthCentre/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000))) 
+    
+    assign(paste0('health3' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/1.Health/SubCountyH/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000))) 
+    
+    assign(paste0('health4' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/1.Health/SubCountyH/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)*1.3/1000)) 
+    
+    assign(paste0('health5' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/1.Health/SubCountyH/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=mean(values)*1.6/1000)) 
+    
+  }
+  
+  for (i in 1:12){
+    assign(paste0('edu' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/2.School/Output/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000))) #/10 schools simulated 
+    
+  }
 
 # Taxes on PV equipment
 vat_import <- read.csv(find_it("vat_import.csv"), stringsAsFactors = F)
 vat_import$ISO3 <- countrycode::countrycode(vat_import[,1], 'country.name', 'iso3c')
 
+# Crop and harvest calendar
 crops = readxl::read_xlsx(find_it('crops_cfs_ndays_months.xlsx'))
 
 # Import csv of energy consumption by crop 
 energy_crops = read.csv(find_it('crop_processing.csv'))
 
 # Survey data
-dhs <- read_sf(find_it('sdr_subnational_data_dhs_2015.shp'))
-dhs <- filter(dhs, dhs$ISO==countrycode(countryiso3, "iso3c", "iso2c"))
-
-empl_wealth<- read_sf(find_it('sdr_subnational_data_dhs_2014.shp'))
-empl_wealth <- filter(empl_wealth, empl_wealth$ISO==countrycode(countryiso3, "iso3c", "iso2c"))
+dhs <- empl_wealth <- read_sf(paste0(input_folder, 'sdr_subnational_data_2022-02-07/sdr_exports.gdb'))
+dhs <- empl_wealth <- filter(dhs, dhs$ISO==countrycode(countryiso3, "iso3c", "iso2c"))
 
 # Classifying schools and healthcare facilities
 health = read_sf(find_it('health.geojson'))
+
+health$Tier <- ifelse(health$SubType=="Health Post" | health$SubType=="Rural Health Post" | health$SubType=="Health Compound" | health$SubType=="Doctor Office" | health$SubType=="Health Office", 1, NA)
+health$Tier <- ifelse(health$SubType=="Health Center" | health$SubType=="Rural Health Center" | health$SubType=="Health Compound", 2, health$Tier)
+health$Tier <- ifelse(health$SubType=="Clinic"  | health$SubType=="Clinic Well" | health$SubType=="Under Five Clinic" | health$SubType=="Health Facility" | health$SubType=="Hospital Affiliated Health Center", 3, health$Tier)
+health$Tier <- ifelse(health$SubType=="Hospital" | health$SubType=="Hospital Well", 4, health$Tier)
 
 #Import primaryschools
 primaryschools = read_sf(find_it('schools.geojson'))

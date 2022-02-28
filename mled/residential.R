@@ -1,107 +1,80 @@
-# Energy efficiency improvements. For now, we will assume that efficiency improvements are stronger by 5% for each tier higher
-# rur1= rur1- eff_impr_rur1*rur1
-# rur2= rur2- eff_impr_rur2*rur2
-# rur3= rur3- eff_impr_rur3*rur3
-# rur4= rur4- eff_impr_rur4*rur4
-# rur5= rur5- eff_impr_rur5*rur5
-# 
-# urb1= urb1- eff_impr_urb1*urb1
-# urb2= urb2- eff_impr_urb2*urb2
-# urb3= urb3- eff_impr_urb3*urb3
-# urb4= urb4- eff_impr_urb4*urb4
-# urb5= urb5- eff_impr_urb5*urb5
-
-# define if clsuter is prevalently urban or rural
-clusters$isurban <- exact_extract(urbrur, clusters, fun="majority")
-
-####
 # Calculate the number of people in each tier in each cluster
-raster_tiers <- rgis::mask_raster_to_polygon(raster_tiers, gadm0)
+clusters$pop <- exact_extract(population_baseline, clusters, "sum")
+clusters$popdens <- clusters$Population / clusters$Area
+clusters$gdp_capita <- exact_extract(gdp_capita_baseline, clusters, "mean")
 
-population <- projectRaster(population, raster_tiers)
+plot_raster_tiers <- rasterVis::levelplot(ratify(raster_tiers))
 
-r1 <- raster_tiers
-values(r1) <- ifelse(values(raster_tiers)==1, values(population), 0)
+values(raster_tiers) <- ifelse(values(raster_tiers)==0, NA, values(raster_tiers))
+clusters$tier <- exact_extract(raster_tiers, clusters, "majority")
 
-r2 <- raster_tiers
-values(r2) <- ifelse(values(raster_tiers)==2, values(population), 0)
+#
 
-r3 <- raster_tiers
-values(r3) <- ifelse(values(raster_tiers)==3, values(population), 0)
+set.seed(123)
 
-r4 <- raster_tiers
-values(r4) <- ifelse(values(raster_tiers)==4, values(population), 0)
+clusters_rf <- na.omit(clusters)
 
-raster_tiers <- stack(r1, r2, r3, r4)
+clusters_rf <- dplyr::select(clusters_rf, tier, gdp_capita, popdens, IsUrban)
 
-accpop <- exact_extract(raster_tiers, clusters, fun="sum")
-accpop <- as.data.frame(accpop)
-colnames(accpop) <- c("acc_pop_t1", "acc_pop_t2", "acc_pop_t3", "acc_pop_t4")
+clusters_rf$tier <- as.factor(clusters_rf$tier)
+clusters_rf$IsUrban <- as.factor(clusters_rf$IsUrban)
 
-clusters$popdens <- clusters$pop / clusters$area
+clusters_rf$geometry <- NULL
 
-aa <- accpop
+train_data <- clusters_rf %>%
+  group_by(tier, IsUrban) %>%
+  slice_sample(prop = 0.7) 
 
-clusters$acc_pop_share_t1 <-  accpop$acc_pop_t1 / (accpop$acc_pop_t1 + accpop$acc_pop_t2 + accpop$acc_pop_t3 + accpop$acc_pop_t4)
-clusters$acc_pop_share_t2 = accpop$acc_pop_t2 / (accpop$acc_pop_t1 + accpop$acc_pop_t2 + accpop$acc_pop_t3 + accpop$acc_pop_t4)
-clusters$acc_pop_share_t3 = accpop$acc_pop_t3 / (accpop$acc_pop_t1 + accpop$acc_pop_t2 + accpop$acc_pop_t3 + accpop$acc_pop_t4)
-clusters$acc_pop_share_t4 = accpop$acc_pop_t4 / (accpop$acc_pop_t1 + accpop$acc_pop_t2 + accpop$acc_pop_t3 + accpop$acc_pop_t4)
+test_data <- clusters_rf %>%  anti_join(train_data)
 
-clusters <- bind_cols(clusters, accpop)
+metric <- "Accuracy"
+mtry <- sqrt(ncol(clusters_rf))
+tunegrid <- expand.grid(.mtry=mtry)
 
-# Spatial join between income quintiles DHS and clusters
+w <- 1/table(train_data$tier)
+w <- w/sum(w)
+weights <- rep(0, nrow(train_data))
+weights[train_data$tier == 1] <- w['1']
+weights[train_data$tier == 2] <- w['2']
+weights[train_data$tier == 3] <- w['3']
+weights[train_data$tier == 4] <- w['4']
 
-dhs <- dplyr::select(dhs, 1:32, 55)
+rf_default <- train(tier ~  .,
+                    data=train_data,
+                    method='rf',
+                    metric='Accuracy',
+                    tuneLength  = 5,
+                    weights=weights,
+                    ntree = 500)#, num.threads = 3)
 
-clusters <- st_transform(clusters, 3395)
-dhs <- st_transform(dhs, 3395)
+# training accuracy
+rf_default
 
-clusters <- st_join(clusters, dhs, join = nngeo::st_nn, maxdist = 50000, k = 1) 
+# testing accuracy
+confusionMatrix(predict(rf_default, newdata=test_data), test_data$tier)
 
-clusters <- st_transform(clusters, 4326)
+# make predictions bases on future data
 
-clusters$ISO = as.factor(countrycode(countryiso3, "iso3c", "iso2c"))
+clusters$pop_future <- exact_extract(population, clusters, "sum")
+clusters$popdens_future <- clusters$pop_future / clusters$Area
+clusters$gdp_capita_future <- exact_extract(gdp_capita, clusters, "mean")
 
-# aa = clusters %>% dplyr::select('acc_pop_share_t1', 'acc_pop_share_t2', 'acc_pop_share_t3', 'acc_pop_share_t4', 'HCWIXQPLOW', 'HCWIXQP2ND', 'HCWIXQPMID', 'HCWIXQP4TH', 'HCWIXQPHGH', 'popdens', 'isurban', 'ISO') %>% as.data.frame()
-# 
-# aa$geom=NULL
-# aa$geometry=NULL
-# 
-# # Partition data
-# splitSample <- sample(1:2, size=nrow(aa), prob=c(0.8,0.2), replace = TRUE)
-# train.hex <- aa[splitSample==1,]
-# test.hex <- aa[splitSample==2,]
-# 
-# pr = rfsrc(Multivar(acc_pop_share_t1, acc_pop_share_t2, acc_pop_share_t3, acc_pop_share_t4)~.,data = train.hex, importance=T)
-# 
-# print(pr)
-# 
-# prediction <- predict.rfsrc(pr, test.hex)
-# 
-# # Calculate the number of people in each tier in each cluster
-# 
-# clusters_ng <- clusters
-# clusters_ng$geometry=NULL
-# clusters_ng$geom=NULL
+newdata <- clusters %>% dplyr::select(gdp_capita_future, popdens_future, IsUrban) %>% mutate(IsUrban=as.factor(IsUrban)) %>%  as.data.frame() 
+newdata$geometry <- NULL
+colnames(newdata) <- c("gdp_capita", "popdens", "IsUrban")
 
-# prediction <- predict.rfsrc(pr, clusters_ng)
-# clusters$acc_pop_share_t1_new = prediction$regrOutput$acc_pop_share_t1$predicted
-# clusters$acc_pop_share_t2_new = prediction$regrOutput$acc_pop_share_t2$predicted
-# clusters$acc_pop_share_t3_new = prediction$regrOutput$acc_pop_share_t3$predicted
-# clusters$acc_pop_share_t4_new = prediction$regrOutput$acc_pop_share_t4$predicted
-# 
-# clusters$acc_pop_t1_new =  clusters$acc_pop_share_t1_new * clusters$noacc
-# clusters$acc_pop_t2_new =  clusters$acc_pop_share_t2_new * clusters$noacc
-# clusters$acc_pop_t3_new =  clusters$acc_pop_share_t3_new * clusters$noacc
-# clusters$acc_pop_t4_new =  clusters$acc_pop_share_t4_new * clusters$noacc
+clusters[complete.cases(newdata), "predicted_tier"] <- predict(rf_default, newdata=newdata[complete.cases(newdata),]) 
+
+# transition matrix
+table(clusters$predicted_tier, clusters$tier)
 
 # Calculate number of households in each cluster
-clusters$HHs = ifelse(clusters$isurban>=12, clusters$noacc/3.5, clusters$noacc/4.5)
+clusters$HHs = ifelse(clusters$IsUrban>0, clusters$pop/urban_hh_size, clusters$pop/rural_hh_size)
 
-clusters$acc_pop_t1_new =  clusters$acc_pop_share_t1 * clusters$HHs
-clusters$acc_pop_t2_new =  clusters$acc_pop_share_t2 * clusters$HHs
-clusters$acc_pop_t3_new =  clusters$acc_pop_share_t3 * clusters$HHs
-clusters$acc_pop_t4_new =  clusters$acc_pop_share_t4 * clusters$HHs
+clusters$acc_pop_t1_new =  clusters$HHs * as.numeric(clusters$predicted_tier==1)
+clusters$acc_pop_t2_new =  clusters$HHs * as.numeric(clusters$predicted_tier==2)
+clusters$acc_pop_t3_new =  clusters$HHs * as.numeric(clusters$predicted_tier==3)
+clusters$acc_pop_t4_new =  clusters$HHs * as.numeric(clusters$predicted_tier==4)
 
 for (m in 1:12){
   for (i in 1:24){
@@ -110,7 +83,7 @@ for (m in 1:12){
     aa$geometry=NULL
     aa$geom=NULL
     
-    clusters = mutate(clusters, !!paste0('PerHHD_' , as.character(m) , "_" , as.character(i)) := ifelse(aa$isurban>=12,  pull(!!as.name(paste0('urb1', "_" , as.character(m))))[i] * aa$acc_pop_t1_new +  pull(!!as.name(paste0('urb2', "_" , as.character(m))))[i] * aa$acc_pop_t2_new +  pull(!!as.name(paste0('urb3', "_" , as.character(m))))[i] * aa$acc_pop_t3_new +  pull(!!as.name(paste0('urb4', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.75 +  pull(!!as.name(paste0('urb5', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.25, ifelse(aa$isurban < 12,  pull(!!as.name(paste0('rur1', "_" , as.character(m))))[i] * aa$acc_pop_t1_new +  pull(!!as.name(paste0('rur2', "_" , as.character(m))))[i] * aa$acc_pop_t2_new +  pull(!!as.name(paste0('rur3', "_" , as.character(m))))[i] * aa$acc_pop_t3_new +  pull(!!as.name(paste0('rur4', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.75 +  pull(!!as.name(paste0('rur5', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.25 , 0)))
+    clusters = mutate(clusters, !!paste0('PerHHD_' , as.character(m) , "_" , as.character(i)) := ifelse(aa$IsUrban > 0,  pull(!!as.name(paste0('urb1', "_" , as.character(m))))[i] * aa$acc_pop_t1_new +  pull(!!as.name(paste0('urb2', "_" , as.character(m))))[i] * aa$acc_pop_t2_new +  pull(!!as.name(paste0('urb3', "_" , as.character(m))))[i] * aa$acc_pop_t3_new +  pull(!!as.name(paste0('urb4', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.75 +  pull(!!as.name(paste0('urb5', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.25, ifelse(aa$IsUrban == 0,  pull(!!as.name(paste0('rur1', "_" , as.character(m))))[i] * aa$acc_pop_t1_new +  pull(!!as.name(paste0('rur2', "_" , as.character(m))))[i] * aa$acc_pop_t2_new +  pull(!!as.name(paste0('rur3', "_" , as.character(m))))[i] * aa$acc_pop_t3_new +  pull(!!as.name(paste0('rur4', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.75 +  pull(!!as.name(paste0('rur5', "_" , as.character(m))))[i] * aa$acc_pop_t4_new * 0.25 , 0)))
   }}
 
 aa <- clusters
@@ -133,3 +106,6 @@ aa$geom=NULL
 
 out = aa %>% dplyr::select(starts_with("PerHHD_tt_monthly_")) %>% rowSums(.)
 clusters$PerHHD_tt = out
+clusters$PerHHD_tt_avg <- clusters$PerHHD_tt / clusters$HHs
+
+saveRDS(clusters, "clusters_residential.R")

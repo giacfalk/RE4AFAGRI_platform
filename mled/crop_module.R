@@ -6,7 +6,7 @@ for (i in 1:length(rainfed2)){
   crs(rainfed2[[i]]) <- as.character(CRS("+init=epsg:4236"))
 }
 
-if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(rainfed2[[1]], st_as_sfc(st_bbox(clusters))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); rainfed2 <- pblapply(rainfed2, function(X){mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters)))}); for (i in 1:length(rainfed2)){crs(rainfed2[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,rainfed2[[1]]); rainfed2 <- pblapply(rainfed2, function(X){mask(X, field_size)})}
+if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(rainfed2[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); rainfed2 <- pblapply(rainfed2, function(X){mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi)))}); for (i in 1:length(rainfed2)){crs(rainfed2[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,rainfed2[[1]]); rainfed2 <- pblapply(rainfed2, function(X){mask(X, field_size)})}
 
 rainfed2 <- split(rainfed2,  unlist(qdapRegex::ex_between(rainfed, "irrigation/", "/I_")))
 
@@ -14,7 +14,7 @@ rainfed <- pblapply(rainfed2, stack)
 
 #
 
-clusters$area <- as.numeric(st_area(clusters)) * 0.0001 # in hectares
+clusters_voronoi$area <- as.numeric(st_area(clusters_voronoi)) * 0.0001 # in hectares
 
 # extract total bluewater demand in each cluster
 
@@ -44,12 +44,12 @@ rainfed <- rainfed_sum
 
 for (i in 1:12){
   
-  clusters[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters, "sum")
+  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum")
 }
 
 # Apply sustainability constraint for groundwater depletion
 
-s <- s[[c((nlayers(s)-11):nlayers(s))]]
+s <- s[[c((nlayers(s)-11):nlayers(s))]] # for speed, consider only the latest year
 index <- rep(1:12, nlayers(s)/12)
 s <- stackApply(s, index, fun = mean)
 
@@ -57,23 +57,27 @@ s <- s * 60*60*24*30  #convert to mm per month
 
 for (i in 1:12){
   
-  clusters[paste0('monthly_GQ' , "_" , as.character(i))] <- exact_extract(s[[i]], clusters, "mean") * clusters$area * 10
+  clusters_voronoi[paste0('monthly_GQ' , "_" , as.character(i))] <- exact_extract(s[[i]], clusters_voronoi, "mean") * clusters_voronoi$area * 10
 }
 
-if(groundwater_sustainability_contraint){
+
+if(groundwater_sustainability_contraint==T){
   
   for (i in 1:12){
     
-    aa <- clusters
-    aa$x=NULL
+    aa <- clusters_voronoi
+    aa$geom=NULL
     
-    clusters[paste0('monthly_unmet' , "_" , as.character(i))] <- ifelse(unlist(aa[paste0('monthly_GQ' , "_" , as.character(i))]) < unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i))]), TRUE, FALSE)
-    
-    aa <- clusters
-    aa$x=NULL
-    
-    clusters[paste0('monthly_IRREQ' , "_" , as.character(i))] <- ifelse(unlist(aa[paste0('monthly_unmet' , "_" , as.character(i))])==TRUE, unlist(aa[paste0('monthly_GQ' , "_" , as.character(i))]), unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i))]))
+    clusters_voronoi[paste0('monthly_unmet_IRRIG_share' , "_" , as.character(i))] <- as.numeric(ifelse((unlist(aa[paste0('monthly_GQ' , "_" , as.character(i))]) < unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i))]))==TRUE, (unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i))]) - unlist(aa[paste0('monthly_GQ' , "_" , as.character(i))]))/ unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i))]), 0))
     
   }}
 
-clusters$maxflow <- exact_extract(maxflow, clusters, "mean")
+clusters_voronoi$maxflow <- exact_extract(maxflow, clusters_voronoi, "mean")
+
+clusters_voronoi_data <- clusters_voronoi
+clusters_voronoi_data$geom <- NULL
+clusters_voronoi_data <- dplyr::select(clusters_voronoi_data, starts_with("monthly"), area, maxflow)
+
+clusters <- bind_cols(clusters, clusters_voronoi_data)
+
+saveRDS(clusters, "clusters_crop_module.Rds")
