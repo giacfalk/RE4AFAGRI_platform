@@ -20,6 +20,7 @@ clusters$EMEMPLMEMC <- ifelse(clusters$EMEMPLMEMC>1, 1, clusters$EMEMPLMEMC)
 clusters$employment = (clusters$EMEMPLMEMC + clusters$EMEMPLWEMC)/2
 
 data_pca = dplyr::select(clusters, employment, popdens_future, traveltime)
+data_pca$geom=NULL
 data_pca$geometry=NULL
 
 data_pca[] <- lapply(data_pca, function(x) { 
@@ -46,7 +47,8 @@ PCs$PCav <- scales::rescale(PCs$PCav, to = c(0.6, 0.3))
 #########
 
 clusters_productive = dplyr::select(clusters, id, starts_with("PerHHD_")) %>% as.data.frame()
-clusters_productive$geometry= NULL
+clusters_productive$geom= NULL
+clusters_productive$geometry=NULL
 clusters_productive$PerHHD_tt = NULL
 clusters_productive$PerHHD_tt_avg = NULL
 
@@ -59,11 +61,12 @@ colnames(clusters_productive) <- gsub("PerHHD_tt", "residual_productive_tt", col
 clusters <- bind_cols(clusters, clusters_productive)
 
 aa <- clusters
+aa$geom=NULL
 aa$geometry=NULL
 
 out = aa %>% dplyr::select(starts_with("residual_productive_tt_")) %>% rowSums(.)
 
 clusters$residual_productive_tt = out
 
-saveRDS(clusters, "clusters_other_productive.R")
+save.image(paste0("results/", countrystudy, "/clusters_other_productive.Rdata"))
 

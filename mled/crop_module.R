@@ -49,15 +49,15 @@ for (i in 1:12){
 
 # Apply sustainability constraint for groundwater depletion
 
-s <- s[[c((nlayers(s)-11):nlayers(s))]] # for speed, consider only the latest year
-index <- rep(1:12, nlayers(s)/12)
-s <- stackApply(s, index, fun = mean)
+qr_baseline <- qr_baseline[[c((nlayers(qr_baseline)-11):nlayers(qr_baseline))]] # for speed, consider only the latest year
+index <- rep(1:12, nlayers(qr_baseline)/12)
+qr_baseline <- stackApply(qr_baseline, index, fun = mean)
 
-s <- s * 60*60*24*30  #convert to mm per month
+qr_baseline <- qr_baseline * 60*60*24*30  #convert to mm per month
 
 for (i in 1:12){
   
-  clusters_voronoi[paste0('monthly_GQ' , "_" , as.character(i))] <- exact_extract(s[[i]], clusters_voronoi, "mean") * clusters_voronoi$area * 10
+  clusters_voronoi[paste0('monthly_GQ' , "_" , as.character(i))] <- exact_extract(qr_baseline[[i]], clusters_voronoi, "mean") * clusters_voronoi$area * 10
 }
 
 
@@ -78,6 +78,15 @@ clusters_voronoi_data <- clusters_voronoi
 clusters_voronoi_data$geom <- NULL
 clusters_voronoi_data <- dplyr::select(clusters_voronoi_data, starts_with("monthly"), area, maxflow)
 
-clusters <- bind_cols(clusters, clusters_voronoi_data)
+clusters_voronoi_data <- dplyr::rename(clusters_voronoi_data, area_voronoi_ha = area)
+clusters_voronoi_data$id <- clusters_voronoi$id
 
-saveRDS(clusters, "clusters_crop_module.Rds")
+clusters <- merge(clusters, clusters_voronoi_data, by="id")
+
+aa <- clusters
+aa$geometry=NULL
+clusters$yearly_IRREQ <- rowSums(dplyr::select(aa, starts_with("monthly_IRREQ")))
+
+save.image(paste0(processed_folder, "clusters_crop_module.Rdata"))
+
+        

@@ -1,6 +1,6 @@
 # generate voronoi clusters for cropland loads
 
-if (length(find_it("clusters_voronoi.gpkg"))>0){
+if (length(grep("clusters_voronoi.gpkg", all_input_files_basename))>0){
   
   clusters_voronoi <- read_sf(find_it("clusters_voronoi.gpkg"))
 

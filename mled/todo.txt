@@ -1,17 +1,13 @@
-February - 1st half of March
+April to June timeline
 
-- Fix projector file
-- Rerun the analysis with clusters_voronoi, and check that results of each step make sense (i.e. there are no bugs)
-
-______________________________________________________________
-Mid March to June
-
-- Test welfare analysis scripts
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1
 - Check data inputs are the best possible (and consistent with other modules) -> Greg 12.3
+- Crop processing module -> improve based on local info or redesign it starting from appliances...
 - Make the input data bundle downloadable and make it callable for replication -> Think about 12.5
-- Get this data to run scenarios for the future
-https://www.isimip.org/gettingstarted/input-data-bias-correction/details/57/ -> search "landuse-15crops" for different (SSPS) here https://esg.pik-potsdam.de/search/isimip/
-WaterCrop -> climate change scenarios (RCPS*SSPS)
-groundwater recharge -> climate change (RCPS)
-- Ultimately, run an array of scenarios by changing some key inputs: -> Future paper & Dashboard input
+- Run scenarios for the future
+    WaterCrop -> water demand (RCPS)
+    groundwater recharge -> climate change (RCPS)
+    socio-econoic development  (SSPs)
+    crop change -> but would need to first feed it into watercrop!!!
+- Work on future paper & Dashboard input data
+- Edit output figures and tables module

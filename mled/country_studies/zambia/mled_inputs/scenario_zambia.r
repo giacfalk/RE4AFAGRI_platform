@@ -46,6 +46,8 @@ countryiso3 = 'ZMB' # ISO3
 national_official_population = 18400000 # number of people
 national_official_elrate = 0.43 # national residential electricity access rate
 national_official_population_without_access = national_official_population- (national_official_population*national_official_elrate) # headcount of people without access
+ppp_gdp_capita <- 3457.6
+gini <- 57.1
 
 urban_hh_size <- 3.5
 rural_hh_size <- 4.5
@@ -57,10 +59,10 @@ discount_rate = 0.15
 
 #Threshold parameters
 threshold_surfacewater_distance = 5000 # (m): distance threshold which discriminates if groundwater pumping is necessary or a surface pump is enough # REF:
-threshold_groundwater_pumping = 50 # (m): maximum depth at which the model allows for water pumping: beyond it, no chance to install the pump # REF:
+threshold_groundwater_pumping = 150 # (m): maximum depth at which the model allows for water pumping: beyond it, no chance to install the pump # REF:
 
 # boundaries for the flow of irrigation pumps, in m3/s
-maxflow_boundaries <- c(0.000277778, 0.00277778) #i.e. 1-10 m3/h
+maxflow_boundaries <- c(1, 25) #i.e. 1-25 m3/h
 
 # Energy efficiency improvement factors for appliances (% per year)
 eff_impr_rur1= 0.05 / planning_horizon
@@ -81,6 +83,7 @@ eff_impr_irrig <- 0.25 / planning_horizon
 
 # efficiency of the water pump
 eta_pump = 0.75
+eta_motor = 0.75 
 
 # lifetime of the pump
 lifetimepump = 20
@@ -94,6 +97,8 @@ c = 3.6 * (10^6) # differential pressure, (Pa)
 water_speed = 2 #m/s, https://www.engineeringtoolbox.com/flow-velocity-water-pipes-d_385.html
 water_viscosity = 0.00089 #https://www.engineersedge.com/physics/water__density_viscosity_specific_weight_13146.htm
 pipe_diameter = 0.8 # m
+
+slope_limit <- 8 # %, for surface pumping
 
 # Transportation costs
 fuel_consumption = 15 # (l/h) # REF: OnSSET
@@ -152,14 +157,33 @@ hc_3_app_cost = 95060
 hc_4_app_cost = 305660
 hc_5_app_cost = 611450
 
+# PV parameters
+
+battery_buffer <- 0.2
+battery_efficiency <- 0.85
+depth_discharge <- 0.8
+usdperkwhbattery <- 500
+
+calories_yearly_need <- 2000 * 365
+proteinsg_yearly_need <- 50 * 365
+fatsg_yearly_need <- 60 * 365
+
 #####################
 # Input data
 #####################
 
-##########
+#####################
+# Irrigation needs (source: soft-link from WaterCROP)
+#####################
+
+rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = T, pattern = "rainfed", recursive=T)
+
+#####################
 # Country-specific data
+#####################
 
 clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
+clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters$elrate <- clusters$elecpop_start_worldpop/clusters$pop_start_worldpop
 
@@ -178,16 +202,17 @@ ext = extent(gadm0)
 #####################
 
 # gridded population (current)
-population_baseline <- stack(find_it("ZMB_population_v1_0_gridded.tif"))
-population_baseline <- rgis::mask_raster_to_polygon(population_baseline, gadm0)
+population_baseline <- raster(find_it("ZMB_population_v1_0_gridded.tif"))
 
 # gridded gdp_baseline (current)
 gdp_baseline <- stack(find_it("gdp_ssp2soc_10km_2010-2100.nc"))[[2]]
 gdp_baseline <- rgis::mask_raster_to_polygon(gdp_baseline, gadm0)
 
-# gridded urbanisation (current)
-urbanization_baseline <- raster(find_it("GHS_SMOD_POP2015_GLOBE_R2019A_54009_1K_V2_0.tif"))
-urbanization_baseline <- rgis::mask_raster_to_polygon(urbanization_baseline, gadm0)
+# urbanisation
+urban_baseline <- list.files(path=paste0(input_folder, "UrbanFraction_1km_GEOTIFF_Projections_SSPs1-5_2010-2100_v1"), recursive = T, pattern=scenario, full.names = T)
+
+urban_baseline <- stack(lapply(urban_baseline, raster))
+urban_baseline <- urban_baseline[[2]]
 
 # current and future cropping patterns
 cropping_baseline = ncdf4::nc_open(find_it(paste0(rcp, 'soc_miroc5_landuse-15crops_annual_2006_2099.nc')))
@@ -196,13 +221,33 @@ ncdf4::nc_close(cropping_baseline)
 cropping_baseline =  lapply(variables, function(X){stack(find_it(paste0(rcp, "soc_miroc5_landuse-15crops_annual_2006_2099.nc")), varname=X)[[15]]})
 
 # groundwater recharge (baseline)
-qr_baseline <- find_it(stack(paste0("lpjml_gfdl-esm2m_ewembi_", rcp, "soc_co2_qr_global_monthly_2006_2099.nc4")))
+qr_baseline <- stack(find_it(paste0("lpjml_gfdl-esm2m_ewembi_", rcp, "_", rcp, "soc_co2_qr_global_monthly_2006_2099.nc4")))
 
-#####################
-# Irrigation needs (source: soft-link from WaterCROP)
-#####################
+# wealth / GDP per capita
 
-rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = T, pattern = "rainfed", recursive=T)
+wealth_baseline <- all_input_files[grep(paste0(countryiso3, "_relative_wealth"), all_input_files)]
+wealth_baseline <- read.csv(wealth_baseline)
+wealth_baseline$iso3c <- countryiso3
+
+source("rwi_to_gdp_capita.R")
+
+wealth_baseline <- st_as_sf(as.data.frame(wealth_baseline), coords=c("longitude", "latitude"), crs=4326)
+
+# lv_grid_density <- raster(find_it("targets.tif"))
+# lv_grid_density <- mask_raster_to_polygon(lv_grid_density, st_as_sfc(st_bbox(clusters)))
+# lv_grid_density <- terra::aggregate(lv_grid_density, fun=sum, fact=20)
+# writeRaster(lv_grid_density, file=find_it("targets_10km.tif"), overwrite=T)
+lv_grid_density <- raster(find_it("targets_10km.tif"))
+crs(lv_grid_density) <- crs(population)
+lv_grid_density <- lv_grid_density>=1
+
+#
+
+calories <- read.csv(find_it("calories.csv"), stringsAsFactors = F)
+crop_parser <- read.csv(find_it("4-Methodology-Crops-of-SPAM-2005-2015-02-26.csv"), stringsAsFactors = F)
+prices <- read.csv(find_it("FAOSTAT_data_8-11-2021.csv"))
+parser <- read.csv(find_it("parser.csv"))
+food_insecurity <- read.csv(find_it("caloric_gap.csv"))
 
 #####################
 # Future gridded data and project data
@@ -239,7 +284,7 @@ for (i in 1:12){
   
  }
 
-  # healthcare and education appliances ownership and usage 
+# healthcare and education appliances ownership and usage 
   
   for (i in 1:12){
     assign(paste0('health1' , "_" , as.character(i)), read.csv(paste0(home_repo_folder , '/ramp/RAMP_services/1.Health/Dispensary/Outputs/output_file_' , as.character(i) , '.csv')) %>% rename(values = X0, minutes = X) %>% mutate(hour=minutes%/%60%%24) %>% group_by(hour) %>% summarise(values=(mean(values)/1000))) 
@@ -264,7 +309,12 @@ vat_import <- read.csv(find_it("vat_import.csv"), stringsAsFactors = F)
 vat_import$ISO3 <- countrycode::countrycode(vat_import[,1], 'country.name', 'iso3c')
 
 # Crop and harvest calendar
-crops = readxl::read_xlsx(find_it('crops_cfs_ndays_months.xlsx'))
+crops = readxl::read_xlsx(find_it('crops_cfs_ndays_months_ZMB.xlsx'))
+
+# Read xlsx of spline surface for water pumps costing
+x = read_xlsx(paste0(input_folder, "interp_surface_cost/smooth_q.xlsx"), col_names = T)
+y = read_xlsx(paste0(input_folder, "interp_surface_cost/smooth_h.xlsx"), col_names = T)
+z = read_xlsx(paste0(input_folder, "interp_surface_cost/smooth_c.xlsx"), col_names = T)
 
 # Import csv of energy consumption by crop 
 energy_crops = read.csv(find_it('crop_processing.csv'))
@@ -291,11 +341,26 @@ field_size <- raster(find_it("field_size_10_40_cropland.img"))
 field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
 gc()
 
+# PV cost layers
+rr <- list.files(paste0(input_folder, "pv_cost"), full.names = T, pattern = "tif")
+
+# solar radiation
+solar_rad <- list.files(path=paste0(input_folder, "pv_cost"), pattern="asc", full.names = T)
+
+# PV out
+pvout_t <- stack(pblapply(list.files(paste0(input_folder, "monthly"), full.names = T, pattern = "asc"), raster))
+
 maxflow <- field_size
 gc()
 v <- scales::rescale(values(maxflow), to = maxflow_boundaries)
 values(maxflow) <- v
 rm(v); gc()
+
+# water storage tank range 
+range_tank <- c(1000, 20000) #liters
+
+# water storage tank cost
+tank_usd_lit <- 0.075
 
 traveltime_market = ee$Image("Oxford/MAP/accessibility_to_cities_2015_v1_0")
 
@@ -307,22 +372,6 @@ DepthToGroundwater = read.delim(find_it('xyzASCII_dtwmap_v1.txt'), sep='\t')
 GroundwaterStorage = read.delim(find_it('xyzASCII_gwstor_v1.txt'), sep='\t')
 GroundwaterProductivity = read.delim(find_it('xyzASCII_gwprod_v1.txt'), sep='\t')
 
-# mask for areas near to existing LV grid
-# lv_grid_density <- raster(find_it("targets.tif"))
-# lv_grid_density <- mask_raster_to_polygon(lv_grid_density, st_as_sfc(st_bbox(clusters)))
-# lv_grid_density <- terra::aggregate(lv_grid_density, fun=sum, fact=20)
-# writeRaster(lv_grid_density, file=find_it("targets_10km.tif"), overwrite=T)
-lv_grid_density <- raster(find_it("targets_10km.tif"))
-crs(lv_grid_density) <- crs(population)
-lv_grid_density <- lv_grid_density>=1
-
-# Import cropland extent (Default dataset used: GFSAD30CE)
-cropland_extent = lapply(list.files(path=input_folder, pattern = "GFSAD30AFCE_", full.names = T, recursive = T), raster)
-extents <- lapply(cropland_extent, extent)
-extent_country <- extent(gadm0)
-extents <- which(unlist(lapply(lapply(extents, function(X){intersect(extent_country, X)}), is.null)) == FALSE)
-cropland_extent <- cropland_extent[extents]
-
 # Import climatezones (Default datasets used: GAEZ soil classes)
 climatezones = raster(find_it('GAEZ_climatezones.tif'))
 climatezones <- mask_raster_to_polygon(climatezones, gadm0)
@@ -333,8 +382,9 @@ roads <- mask_raster_to_polygon(roads, gadm0)
 traveltime <- raster(find_it('travel.tif'))
 traveltime <- mask_raster_to_polygon(traveltime, gadm0)
 
-urbrur <- raster(find_it('GHSL_settlement_type.tif'))
-urbrur <- mask_raster_to_polygon(urbrur, gadm0)
-
 raster_tiers = raster(find_it('tiersofaccess_SSA_2018.nc'))
 raster_tiers <- mask_raster_to_polygon(raster_tiers, gadm0)
+
+#
+
+save.image(paste0(processed_folder, "scenario_zambia.Rdata"))

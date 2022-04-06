@@ -30,13 +30,9 @@ all_input_files <- all_input_files[-grep(exclude_countries, all_input_files)]
 all_input_files_basename <- basename(all_input_files)
 
 user.input <- function(prompt) {
-  if (interactive()) {
-    return(readline(prompt))
-  } else {
-    cat(prompt)
-    return(readLines("stdin", n=1))
+    x= readline(prompt)
+    return(x)
   }
-}
 
 
 find_it <- function(X){

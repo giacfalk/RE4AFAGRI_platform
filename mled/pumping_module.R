@@ -1,22 +1,58 @@
+# Script to estimate, given monthly irrigation needs:
+#1) Power of pump (W) given flow of pump (m3/s), or flow of pump given a fixed power of pump
+#2) KWh/month required
+
+#############
+
+# Groundwater and surface water pumping module
+
+# Use Google Earth Engine to extract the distance to the nearest source of surface water
+
 geom <- ee$Geometry$Rectangle(c(as.vector(extent(clusters))[1], as.vector(extent(clusters))[3], as.vector(extent(clusters))[2], as.vector(extent(clusters))[4]))
 
-i = ee$Image("JRC/GSW1_2/GlobalSurfaceWater")$select('max_extent')$clip(geom)
-i = i$mask(i$eq(1))
-maxDist = ee$Kernel$circle(25000, 'meters', TRUE, 1)
-kernel = ee$Kernel$euclidean(25000,"meters");
-i = i$distance(kernel,FALSE)$clip(geom)
+# srtm = ee$Image('USGS/SRTMGL1_003');
+# slope = ee$Terrain$slope(srtm);
+# 
+# img_01 <- ee_as_raster(
+#   image = slope,
+#   via = "drive",
+#   region = geom,
+#   scale = 500
+# )
 
-img_02 <- ee_as_raster(
-  image = i,
-  via = "drive",
-  region = geom,
-  scale = 500
-)
+img_01 <- raster(paste0(input_folder, "slope.tif"))
 
-img_02 <- raster(img_02)
+# i = ee$FeatureCollection("WWF/HydroSHEDS/v1/FreeFlowingRivers") #$filter(ee$Filter$lte('RIV_ORD', 7))
+# i = i$map(function(f) {
+#   f$buffer(20, 10);
+# });
+# 
+# distance = i$distance(searchRadius = 50000, maxError = 25)$clip(geom)
+# 
+# img_02 <- ee_as_raster(
+#   image = distance,
+#   via = "drive",
+#   region = geom,
+#   scale = 500
+# )
 
+img_02 <- raster(paste0(input_folder, "groundwater_distance.tif"))
+
+# library(lwgeom)
+#
+# world_all_africa <- filter(rnaturalearth::ne_countries(scale = "medium", returnclass = "sf"), region_un=="Africa") %>% st_transform(3395) %>%
+#   st_snap_to_grid(size = 1000) %>%
+#   st_make_valid() %>% st_union() %>% st_transform(4326) %>% st_as_sf()
+#
+#
+# img_02 <- rgis::mask_raster_to_polygon(img_02, clusters)
+#
+# writeRaster(img_02,"D:/OneDrive - IIASA/Current papers/Groundwater_economic_feasibility/Groundwater-Cost/Groundwater-Cost/data/noid_image.tif", overwrite=T)
+
+#
 # # Calculate the mean distance from each cluster to the nearest source of surface water
 clusters$surfw_dist <-  exact_extract(img_02, clusters, fun="mean")
+clusters$slope <-  exact_extract(img_01, clusters, fun="mean")
 
 # Groundwater depth
 # Reclassify to numeric
@@ -39,6 +75,7 @@ groundwater_storage <- rasterFromXYZ(GroundwaterStorage[c("X", "Y", "storagewate
 # Extract mean value within each cluster
 clusters$gr_wat_storage <- exactextractr::exact_extract(groundwater_storage, clusters, fun="mean")
 
+
 # Groundwate productivity
 GroundwaterProductivity$Productivitywater = ifelse(GroundwaterProductivity$GWPROD_V2 == 'VH', 25, ifelse(GroundwaterProductivity$GWPROD_V2 == "H", 12.5, ifelse(GroundwaterProductivity$GWPROD_V2 == "M", 3, ifelse(GroundwaterProductivity$GWPROD_V2 == "LM", 0.75, ifelse(GroundwaterProductivity$GWPROD_V2 == "L", 0.3, 0.05)))))
 
@@ -49,96 +86,163 @@ groundwater_Productivity <- rasterFromXYZ(GroundwaterProductivity[c("X", "Y", "P
 # Extract mean value within each cluster
 clusters$gr_wat_productivity <- exactextractr::exact_extract(groundwater_Productivity, clusters, fun="mean")
 
-# To fix potential bugs in the data, delete negative values
-clusters$gr_wat_depth = ifelse(clusters$gr_wat_depth<0, 0, clusters$gr_wat_depth)
-clusters$surfw_dist = ifelse(is.na(clusters$surfw_dist), Inf, clusters$surfw_dist)
+##########
 
-# Calculate total groundwater pumps flow rate required in m3/s in each month
+# To fix potential bugs in the data, delete negative values
+clusters <- clusters %>% group_by(sov_a3) %>% mutate(gr_wat_depth=ifelse(is.na(gr_wat_depth), mean(gr_wat_depth, na.rm=T), gr_wat_depth)) %>% ungroup()
+
+clusters <- clusters %>% group_by(sov_a3) %>% mutate(surfw_dist=ifelse(is.nan(surfw_dist), mean(surfw_dist, na.rm=T), surfw_dist)) %>% ungroup()
+
+#clusters$surfw_dist <- ifelse(clusters$slope > slope_limit, Inf, clusters$surfw_dist) # an excessive slope renders groundwater pumping not feasible
+
+clusters$surfw_dist = ifelse(clusters$surfw_dist>threshold_surfacewater_distance, Inf, clusters$surfw_dist)
+
+clusters$gr_wat_depth = ifelse(clusters$gr_wat_depth>threshold_groundwater_pumping, Inf, clusters$gr_wat_depth)
+
+######################
+
+# Calculate average water pumps flow rate required in m3/h in each month
 for (i in c(1:12)){
   aa <- clusters
   aa$geometry=NULL
-
-  clusters[paste0("q" , as.character(i))] = aa[paste0('monthly_IRREQ' , "_" , as.character(i))] /30/nhours_irr/3600
+  aa$geom=NULL
+  
+  if(scenarios$groundwater_sustainability_contraint[scenario]==F)
+    
+    clusters[paste0("q" , as.character(i))] = aa[paste0('monthly_IRREQ' , "_" , as.character(i))] / 30/nhours_irr
+  
+  else{
+    
+    clusters[paste0("q" , as.character(i))] = (aa[paste0('monthly_IRREQ' , "_" , as.character(i))]     * (1- aa[paste0('monthly_unmet_IRRIG_share' , "_" , as.character(i))])
+    )/ 30/nhours_irr
+    
+  }
+  
 }
+
 
 # npumps required
 aa <- clusters
 aa$geometry=NULL
-aa$maxq <- as.vector(rowMax(as.matrix(aa[grepl("q", colnames(aa))])))
+aa$geom=NULL
+clusters$maxq <- as.vector(rowMax(as.matrix(aa[grepl("^q", colnames(aa))])))
 
-clusters$npumps <- ceiling(aa$maxq / clusters$maxflow)
+clusters$npumps <- ceiling(clusters$maxq / clusters$maxflow)
+
+clusters$npumps <- ifelse((is.infinite(clusters$gr_wat_depth) & is.infinite(clusters$surfw_dist)), 0, clusters$npumps)
+
+# ground water pumping
 
 for (i in 1:12){
   print(i)
   aa <- clusters
   aa$geometry=NULL
-
-  # RGH to estimate power for pump (in W), missing the head losses
-  clusters[paste0('powerforpump', as.character(i))] = (rho* g * clusters$gr_wat_depth* pull(aa[paste0("q", as.character(i))]))/eta_pump / clusters$npumps
+  aa$geom=NULL
+  
+  # RGH to estimate power for pump (in kW), missing the head losses
+  clusters[paste0('powerforpump', as.character(i))] = ifelse(clusters$npumps>0, ((rho* g * clusters$gr_wat_depth* pull(aa[paste0("q", as.character(i))])/ clusters$npumps)/(3.6*10^6))/eta_pump/eta_motor, 0)
   
   aa <- clusters
   aa$geometry=NULL
-
-  # clusters[paste0('powerforpump', as.character(i))] = ifelse(aa["gr_wat_depth"]>threshold_groundwater_pumping, Inf, pull(aa[paste0('powerforpump', as.character(i))]))
+  aa$geom=NULL
+  
+  clusters$powerforpump <- as.vector(rowMax(as.matrix(aa[grepl("^powerforpump", colnames(aa))])))
   
   aa <- clusters
   aa$geometry=NULL
-
+  aa$geom=NULL
+  
   #Calculate monthly electric requirement
-  clusters[paste0('wh_monthly', as.character(i))] = pull(aa[paste0('powerforpump', as.character(i))])*nhours_irr*30
+  clusters[paste0('wh_monthly', as.character(i))] = pull(aa[paste0('powerforpump')])*nhours_irr*30
   
   aa <- clusters
   aa$geometry=NULL
-
-  clusters[paste0('er_kwh' , as.character(i))] = aa[paste0('wh_monthly', as.character(i))]/1000
+  aa$geom=NULL
+  
+  clusters[paste0('er_kwh' , as.character(i))] = aa[paste0('wh_monthly', as.character(i))]
   
   aa <- clusters
   aa$geometry=NULL
-
-  clusters[paste0("surfw_w", as.character(i))] = aa[paste0("q", as.character(i))]*((32 * water_speed * aa["surfw_dist"] *water_viscosity)/pipe_diameter**2)/eta_pump/ clusters$npumps
-  
-  aa <- clusters
-  aa$geometry=NULL
-
-  clusters[paste0('surfw_w', as.character(i))] = ifelse(aa["surfw_dist"]>threshold_surfacewater_distance, Inf, pull(aa[paste0('surfw_w', as.character(i))]))
-  
-  aa <- clusters
-  aa$geometry=NULL
-
-  clusters[paste0('surface_er_kwh', as.character(i))] = aa[paste0('surfw_w', as.character(i))]*nhours_irr*30/1000
+  aa$geom=NULL
   
 }
 
+# surface water pumping
+
+for (i in 1:12){
+  print(i)
+  aa <- clusters
+  aa$geometry=NULL
+  aa$geom=NULL
+  
+  v = (pull(aa[paste0("q", as.character(i))]) / aa$npumps) / (3600 * pi * (pipe_diameter/2)^2)
+  
+  delta_p_psi <- ((0.025 * v^2 * pull(aa["surfw_dist"])) / (2 * pipe_diameter)) * 0.145
+  
+  clusters[paste0("surfw_w", as.character(i))] = ifelse((clusters$npumps>0 & is.finite(clusters$surfw_dist)), ((delta_p_psi * (pull(aa[paste0("q", as.character(i))]) / aa$npumps) / 0.22) / (1717*eta_pump*eta_motor)) * 0.746, 0)
+  
+  aa <- clusters
+  aa$geometry=NULL
+  aa$geom=NULL
+  
+  
+  clusters$surfw_w <- as.vector(rowMax(as.matrix(aa[grepl("^surfw_w", colnames(aa))])))
+  
+  aa <- clusters
+  aa$geometry=NULL
+  aa$geom=NULL
+  
+  clusters[paste0('surface_er_kwh', as.character(i))] = aa[paste0('surfw_w', as.character(i))]*nhours_irr*30
+  
+}
 
 ######################
 # select less energy intensive option between surface and groundwater pumping
 
 aa <- clusters
 aa$geometry=NULL
+aa$geom=NULL
 
 clusters[paste0('er_kwh_tt')] <- as.numeric(rowSums(aa[,grep("^er_kwh", colnames(aa))], na.rm = T))
 clusters[paste0('surface_er_kwh_tt')] <- as.numeric(rowSums(aa[,grep("^surface_er_kwh", colnames(aa))], na.rm = T))
 
-clusters$which_pumping <- ifelse(clusters$er_kwh_tt<clusters$surface_er_kwh_tt, "groundwater", ifelse(clusters$er_kwh_tt>clusters$surface_er_kwh_tt,"surfacewater", "neither"))
+clusters$er_kwh_tt <- ifelse(clusters$npumps==0, 0, clusters$er_kwh_tt)
+clusters$surface_er_kwh_tt <- ifelse(clusters$npumps==0, 0, clusters$surface_er_kwh_tt)
+
+clusters$which_pumping <- NA
+clusters$which_pumping[clusters$er_kwh_tt<clusters$surface_er_kwh_tt] <- "Ground water pumping"
+clusters$which_pumping[clusters$surface_er_kwh_tt<clusters$er_kwh_tt] <- "Surface water pumping"
+clusters$which_pumping[(is.na(clusters$which_pumping))] <- "Neither possible"
+
+table(clusters$which_pumping)
+
+#
+
+summary(clusters$powerforpump[clusters$npumps>0])
+summary(clusters$surfw_w[clusters$npumps>0])
+
+summary(clusters$er_kwh_tt[clusters$npumps>0])
+summary(clusters$surface_er_kwh_tt[clusters$npumps>0])
+
+#
 
 for (i in 1:12){
   
   aa <- clusters
   aa$geometry=NULL
-
-  clusters[paste0("er_kwh", as.character(i))] = ifelse(aa["which_pumping"]=="groundwater", pull(aa[paste0("er_kwh", as.character(i))]), ifelse(aa["which_pumping"]=="surfacewater", pull(aa[paste0("surface_er_kwh", as.character(i))]), NA))
+  aa$geom=NULL
   
-  clusters[paste0("powerforpump", as.character(i))] = ifelse(aa["which_pumping"]=="groundwater", pull(aa[paste0("powerforpump", as.character(i))]), ifelse(aa["which_pumping"]=="surfacewater", pull(aa[paste0("surfw_w", as.character(i))]), NA))
+  clusters[paste0("er_kwh", as.character(i))] = ifelse(aa["which_pumping"]=="Ground water pumping", pull(aa[paste0("er_kwh", as.character(i))]), ifelse(aa["which_pumping"]=="Surface water pumping", pull(aa[paste0("surface_er_kwh", as.character(i))]), NA))
   
 }
 
-clusters[is.na(clusters)] <- 0
+clusters$powerforpump = ifelse(clusters$which_pumping=="Ground water pumping", clusters$powerforpump, ifelse(clusters$which_pumping=="Surface water pumping", clusters$surfw_w, NA))
 
-for (i in 1:12){
-  aa <- clusters
-  aa$geometry=NULL
-  print(summary(aa[paste0('er_kwh' , as.character(i))]  * clusters$npumps))
-}
+sum(clusters$powerforpump * clusters$npumps, na.rm=T)/1e3 # MW
+sum(clusters$er_kwh_tt * clusters$npumps, na.rm=T)/1e9 # TWh
+
+write_rds(clusters, "clusters_with_data_2.Rds")
+
 
 # # simulate daily profile
 # 
@@ -154,4 +258,4 @@ for (i in 1:12){
 #     clusters[paste0('er_kwh_' , as.character(k) , "_" , as.character(i))] <- (aa[paste0('er_kwh', as.character(k))]/30)*load_curve_irr[i]
 #   }}
 
-saveRDS(clusters, "clusters_pumping_module.rds")
+save.image(paste0("results/", countrystudy, "/clusters_pumping_module.Rdata"))

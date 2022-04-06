@@ -2,12 +2,7 @@
 ## Define interpolating function over the aproximated surface
 # ------------------------------------------------------------------------------
 # Find nearest neighbor interpolating function.
-nninterp <- function(q, h) {
-  
-  # Read xlsx of spline surface.
-  x = read_xlsx("interp_surface_cost/spline_q.xlsx", col_names = T)
-  y = read_xlsx("interp_surface_cost/spline_h.xlsx", col_names = T)
-  z = read_xlsx("interp_surface_cost/spline_c.xlsx", col_names = T)
+nninterp <- function(q, h, type, yearly_IRREQ) {
   
   df = data.frame(x, y, z)
   
@@ -22,7 +17,22 @@ nninterp <- function(q, h) {
   
   # Find pump cost.
   # Convert from GBP to USD.
-  cost_inv_pump = as.numeric(z[near_h,near_q]) * 1.38
+  
+  if (instalments_business_model==F){
+    
+    cost_inv_pump = as.numeric(z[near_h,near_q]) * 1.38
+    
+  } else{
+    
+    cost_inv_pump =  npv(discount_rate, rep(((as.numeric(z[near_h,near_q]) * 1.38) / lifetimepump)), 0:(lifetimepump-1)) 
+    
+  }
+  
+  if (water_tank_storage==T){
+    
+    st_tank_cost <-  yearly_IRREQ * tank_usd_lit #- proportional to water requirements
+    
+  } else{st_tank_cost <- 0}
   
   # Fixed costs
   # Siting costs: mean between the only values we have
@@ -38,43 +48,48 @@ nninterp <- function(q, h) {
   # Variable costs: failure costs.
   # Mean value from Xenarios (see "failure_cost_FS.r"), can refine selecting costs
   # by location (country), but needs country or coordinates as input.
-  cost_fail_tot = 31.55 * h
   
-  # Check conditions and compute total cost.
-  if (q > max(x) | q < min(x)) {
-    #print("WARNING: EXTRAPOLATION ON q")
-  } else {}
+  cost_fail_tot = npv(discount_rate, rep(((31.55 * h) / lifetimepump)), 0:(lifetimepump-1))
   
-  if (h > max(y) | h < min(x)) {
-    #print("WARNING: EXTRAPOLATION ON h")
-  } else {}
+  # Total cost.
   
-  if (q < 0 | h < 0) {
+  if (type == "Ground water pumping") {
     
-    # This line doesn't work currently: there is a built-in error message for negative values.
-    print("ERROR: negative values for q and h are not accepted")
-    break
+    cost_tot = cost_inv_sit + cost_inv_pump + cost_inv_mob + cost_var_dril_cas + cost_fail_tot + st_tank_cost
     
-  } else {
+  } 
+  
+  
+  if (type == "Surface water pumping") {
     
-    # Total cost.
-    cost_tot = cost_inv_sit + cost_inv_pump + cost_inv_mob + cost_var_dril_cas + cost_fail_tot
-    
-    # Return total cost.
-    #print("Pump cost [USD]:")
-    return(cost_tot)
-    
-  }
+    if (instalments_business_model){
+      
+      cost_fail_tot = npv(discount_rate, rep(((31.55 * 15) / lifetimepump)), 0:(lifetimepump-1))
+      
+      cost_inv_pump = as.numeric(z[which.min(y),near_q]) * 1.38
+      cost_tot = cost_inv_pump + cost_inv_mob + cost_fail_tot + st_tank_cost
+      
+    } else{
+      
+      cost_fail_tot = npv(discount_rate, rep(((31.55 * 15) / lifetimepump)), 0:(lifetimepump-1))
+      
+      cost_inv_pump =  npv(discount_rate, rep(((as.numeric(z[which.min(y),near_q]) * 1.38) / lifetimepump)), 0:(lifetimepump-1)) 
+      cost_tot = cost_inv_pump + cost_inv_mob + cost_fail_tot + st_tank_cost
+      
+    }}
+  
+  return(cost_tot)
+  
 }
 
-##
-
-cl <- clusters %>% dplyr::select(starts_with("q_sust")) %>% st_set_geometry(NULL)
+cl <- clusters %>% dplyr::select(starts_with("q")) %>% st_set_geometry(NULL)
 cl <- apply(cl, 1, max)
-cl <- as.numeric(cl) * 3600
 
-clusters$totalpumpcost <- mapply(nninterp, cl/clusters$npumps, clusters$gr_wat_depth) * clusters$npumps
-clusters$totalpumpcost <- ifelse(is.na(clusters$totalpumpcost), 0, clusters$totalpumpcost)
-clusters$totalpumpcost <- ifelse(clusters$totalpumpcost<0, 0, clusters$totalpumpcost)
+clusters$totalpumpcost <- NA
+where_index <- (is.finite(cl/clusters$npumps) & clusters$er_kwh_tt>0)
 
-saveRDS(clusters, "clusters_pumps_installation_cost.R")
+clusters$totalpumpcost[where_index] <- pbapply::pbmapply(nninterp, cl[where_index]/clusters$npumps[where_index], clusters$gr_wat_depth[where_index], clusters$which_pumping[where_index], scales::rescale(clusters$yearly_IRREQ, to=range_tank)[where_index]) * clusters$npumps[where_index]
+
+clusters$totalpumpcost <- ifelse(is.infinite(clusters$totalpumpcost), NA, clusters$totalpumpcost)
+
+save.image(paste0("results/", countrystudy, "/pumps_installation_costs.Rdata"))

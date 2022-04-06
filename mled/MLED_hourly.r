@@ -1,6 +1,6 @@
 # MLED - Multisectoral Latent Electricity Demand assessment platform
 # v2 (LEAP_RE adaptation)
-# 28/02/2022
+# 06/04/2022
 
 ####
 # system parameters
@@ -32,8 +32,9 @@ rcp <- c("rcp26") # list RCP scenario to run
 groundwater_sustainability_contraint <- T # impose limit on water pumping based on groundwater recharge
 field_size_contraint <- T # only consider small farmland patches (smallholder farming)
 VAT_import_costs <- T # include VAT and import costs on PV and batteries in the analysis
-instalments_business_model <- T # upfront lump sum required for PV & appliances
-process_already_irrigated_crops <- T # crop processing: also include energy demand to process yield in currently irrigated land
+instalments_business_model <- T # upfront lump sum spread over lifetime for PV & appliances
+process_already_irrigated_crops <- T # crop processing: include energy demand to process yield in already irrigated land
+water_tank_storage <- T
 
 ######################
 # run the analysis
@@ -75,28 +76,48 @@ source("crop_processing.R")
 timestamp()
 source("other_productive.R")
 
+}
+
+#load(paste0("results/", countrystudy, "/clusters_other_productive.Rdata"))
 
 ####
 
 # Write output for soft-linking into OnSSET and NEST and for online visualisation
 
-demand_fields <- c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cropproc_tt")
+demand_fields <- c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt")
 
-clusters_onsset <- dplyr::select(clusters, demand_fields)
-write_sf(clusters_onsset, paste0(countrystudy, "_onsset_clusters_with_mled_loads.gpkg"))
+clusters_onsset <- dplyr::select(clusters, all_of(demand_fields))
+
+colnames(clusters_onsset) <- c("residential", "smes", "healthcare", "schools", "irrigation", "crop_processing", "geometry")
+
+clusters_onsset <- na.omit(clusters_onsset)
+
+write_sf(clusters_onsset, paste0("results/", countrystudy, "/onsset_clusters_with_mled_loads_", scenario, ".gpkg"))
 
 id <- fasterize(clusters_nest, rainfed[[1]], "OBJECTID")
 
 clusters_onsset$OBJECTID <- exact_extract(id, clusters_onsset, "majority")
-clusters_onsset$geometry <- NULL
+clusters_onsset$geom <- NULL
 clusters_onsset <- group_by(clusters_onsset, OBJECTID) %>% summarise_all(., sum, na.rm=T)
 
 clusters_nest <- merge(clusters_nest, clusters_onsset, "OBJECTID")
 
-write_sf(clusters_nest, paste0(countrystudy, "_nest_clusters_with_mled_loads.gpkg"))
+write_sf(clusters_nest, paste0("results/", countrystudy, "/nest_clusters_with_mled_loads_", scenario, ".gpkg"))
 
-write_sf(clusters, paste0(countrystudy, "_clusters_for_dashboard.geojson"))
 
+#
+
+gadm2$id <- 1:nrow(gadm2)
+id <- fasterize(gadm2, diesel_price, "id")
+
+clusters_onsset <- dplyr::select(clusters, all_of(demand_fields))
+clusters_onsset$id <- exact_extract(id, clusters_onsset, "majority")
+clusters_onsset$geom <- NULL
+clusters_onsset <- group_by(clusters_onsset, id) %>% summarise_all(., sum, na.rm=T)
+
+gadm2 <- merge(gadm2, clusters_onsset, "id")
+
+write_sf(gadm2, paste0("results/", countrystudy, "/gadm2_with_mled_loads_", scenario, ".gpkg"))
 
 #################
 # Welfare analysis
@@ -118,10 +139,7 @@ timestamp()
 source("food_security_implications.R")
 
 #################
-# Plotting
+# Plotting and tables
 
-
-
-}
-
-
+timestamp()
+source("generate_output_figures_tables.R")
