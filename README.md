@@ -2,10 +2,12 @@
 
 # RE4AFAGRI platform - Renewables for African Agriculture
 
-![alt text](https://github.com/giacfalk/M-LED/blob/master/logo.png?raw=true)
+![alt text](https://lh5.googleusercontent.com/8Xl_fDCARAQ05NnuEZ3SYt-IUHKocv9uTRWgr9hORrgCSQkhpY9T0kiVjH0gao95Wq1udNc_vr7meotbOEJY9oI-x2R1kEnNSl-Qhfcxfg_fcYiO4UC96zGUZqYizuyGlA=w1280)
 
 ####
-The platform has been developed and tested in a Windows 10 environment connected to the Internet (a connection is required to operate Google Earth Engine API calls). 
+https://sites.google.com/view/re4afagri/home
+
+The platform has been developed and tested in a Windows 10 environment connected to the Internet.
 
 ## Setting up the environment
 
