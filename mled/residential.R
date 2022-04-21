@@ -112,6 +112,13 @@ out = aa %>% dplyr::select(starts_with("PerHHD_tt_monthly_")) %>% rowSums(.)
 clusters$PerHHD_tt = out
 clusters$PerHHD_tt_avg <- clusters$PerHHD_tt / clusters$HHs
 
+if (output_hourly_resolution==F){
+  
+  ### remove the hourly fields
+  
+ }
+
+
 clusters <- st_as_sf(clusters)
 
 save.image(paste0("results/", countrystudy, "/clusters_residential.Rdata"))

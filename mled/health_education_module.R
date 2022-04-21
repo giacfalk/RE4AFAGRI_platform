@@ -72,4 +72,11 @@ aa$geometry=NULL
 out = aa %>% dplyr::select(starts_with("er_sch_tt_monthly_")) %>% rowSums(.)
 clusters$er_sch_tt = out
 
+if (output_hourly_resolution==F){
+  
+  ### remove the hourly fields
+  
+}
+
+
 save.image(paste0("results/", countrystudy, "/clusters_healthedu.Rdata"))

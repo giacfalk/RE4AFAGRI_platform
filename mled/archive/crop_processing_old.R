@@ -1,7 +1,3 @@
-# 1- per processare x% del raccolto (fai diversi scenari) in 10 ore di attiività delle macchine al giorno per x mesi, hai bisogno di un tot di kw totali (kw_kg_h) * kg * h
-# 2- assumi kw large-scale se è nei pressi della città, small scale se è remota, e calcola numero di macchine necessarie
-# 3- energia = kw * ore * macchine
-
 #Crop processing machinery: energy demand
 
 # Extract yield 
@@ -50,21 +46,15 @@ for (X in 1:length(files)){
   clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("_i.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])), "_irr_", "_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("_i.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])), "_irr")])) 
 }
 
-#
-
 # Multiply yearly yield of each crop by unit processing energy requirement to estimate yearly demand in each cluster as the sum of each crop processing energy demand
 for (X in as.vector(energy_crops[,1])){
   aa <- clusters
   aa$geom=NULL
   aa$geometry=NULL
   
-  clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("yield_", X, "_tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X] 
-
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
+  clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("yield_", X, "_tot")]) * energy_crops$kwh_kg[as.vector(energy_crops[,1]) == X] 
   
-  clusters[paste0("kwh_" , X , "_tot")] = ifelse(clusters$suitable_for_local_processing==1, pull(aa[paste0("kwh_" , X , "_tot")]), 0)
+  clusters[paste0("kwh_" , X , "_tot")] = ifelse(clusters$suitable_for_local_processing==1, clusters[paste0("kwh_" , X , "_tot")], 0)
   
   aa <- clusters
   aa$geom=NULL
@@ -72,13 +62,9 @@ for (X in as.vector(energy_crops[,1])){
   
   if (process_already_irrigated_crops==T){
     
-    clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("kwh_" , X , "_tot")]) + (pull(aa[paste0("yield_", X, "_irr__tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X])
+    clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("kwh_" , X , "_tot")]) + (pull(aa[paste0("yield_", X, "_irr__tot")]) * energy_crops$kwh_kg[as.vector(energy_crops[,1]) == X])
     
-    aa <- clusters
-    aa$geom=NULL
-    aa$geometry=NULL
-    
-    clusters[paste0("kwh_" , X , "_tot")] = ifelse(clusters$suitable_for_local_processing==1, pull(aa[paste0("kwh_" , X , "_tot")]), 0)
+    clusters[paste0("kwh_" , X , "_tot")] = ifelse(clusters$suitable_for_local_processing==1, clusters[paste0("kwh_" , X , "_tot")], 0)
     
   }
   
@@ -87,6 +73,7 @@ for (X in as.vector(energy_crops[,1])){
 aa <- clusters
 aa$geom=NULL
 aa$geometry=NULL
+
 
 clusters$kwh_cp_tt = as.vector(aa %>%  dplyr::select(starts_with('kwh')) %>% rowSums(na.rm = T) %>% as.numeric())
 
@@ -138,82 +125,30 @@ for (z in 1:12){
 
 }
 
-# monthly_kwh_cropproc nel mese m / (potenza della macchina: assunta / numero di ore operazionali) = numero di macchine necessarie
-
-for (X in as.vector(energy_crops[,1])){
-  for (m in 1:12){
-
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-  
-  clusters[paste0("n_machines_" , X , "_" , as.character(m))] <- ceiling(pull(aa[paste0("kwh_cp" , X , "_" , as.character(m))]) / ((energy_crops$kg_per_hour_kwmin[as.vector(energy_crops[,1]) == X]) * (sum(load_curve_cp>0))))
-  
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-  
-  clusters[paste0("kw_tot_machines_" , X , "_" , as.character(m))] <- pull(aa[paste0("n_machines_" , X , "_" , as.character(m))]) * energy_crops$kw_min[as.vector(energy_crops[,1]) == X]
-  
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-  
-  clusters[paste0("n_machines_" , X , "_" , as.character(m))] <- ifelse(clusters$suitable_for_local_processing==1, pull(aa[paste0("n_machines_" , X , "_" , as.character(m))]), 0)
-  
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-  
-  clusters[paste0("kw_tot_machines" , X , "_" , as.character(m))] <- ifelse(clusters$suitable_for_local_processing==1, pull(aa[paste0("kw_tot_machines_" , X , "_" , as.character(m))]), 0)
-
-  }}
-
-for (X in as.vector(energy_crops[,1])){
-  
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-  
-  clusters[paste0("n_machines_" , X)] <- as.vector(as.matrix(aa %>%  dplyr::select(starts_with(paste0("n_machines_" , X)))) %>% rowMax(.) %>% as.numeric())
-  
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-  
-  clusters[paste0("kw_tot_machines_" , X)] <- as.vector(as.matrix(aa %>%  dplyr::select(starts_with(paste0("kw_tot_machines_" , X)))) %>% rowMax(.) %>% as.numeric())
-    
-}
+# # simulate daily profile
+# 
+# for (k in 1:12){
+# 
+#   aa <- clusters
+#   aa$geom=NULL
+#   aa$geometry=NULL
+#   
+# 
+#   clusters[paste0('kwh_cropproc_tt_', as.character(k))] = pull(aa[paste0('monthly_kwh_cropproc' , "_" , as.character(k))])/30
+# 
+# }
+# 
+# for (k in 1:12){
+#   for (i in 1:24){
+# 
+#     aa <- clusters
+#     aa$geom=NULL
+#     aa$geometry=NULL
+#     
+# 
+#     clusters[paste0('kwh_cropproc' , as.character(k) , "_" ,  as.character(i))] = pull(aa[paste0('kwh_cropproc_tt_' , as.character(k))])*load_curve_cp[i]
+# 
+#   }}
 
 
-
-if (output_hourly_resolution==T){
-  
-# simulate daily profile
-
-for (k in 1:12){
-
-  aa <- clusters
-  aa$geom=NULL
-  aa$geometry=NULL
-
-
-  clusters[paste0('kwh_cropproc_tt_', as.character(k))] = pull(aa[paste0('monthly_kwh_cropproc' , "_" , as.character(k))])/30
-
-}
-
-for (k in 1:12){
-  for (i in 1:24){
-
-    aa <- clusters
-    aa$geom=NULL
-    aa$geometry=NULL
-
-
-    clusters[paste0('kwh_cropproc' , as.character(k) , "_" ,  as.character(i))] = pull(aa[paste0('kwh_cropproc_tt_' , as.character(k))])*load_curve_cp[i]
-
-  }}
-
-}
-  
 save.image(paste0("results/", countrystudy, "/clusters_crop_processing.Rdata"))

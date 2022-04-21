@@ -49,6 +49,9 @@ national_official_population_without_access = national_official_population- (nat
 ppp_gdp_capita <- 3457.6
 gini <- 57.1
 
+zambia_electr_final_demand_tot_ <- 947 * 11630 #ktoe to kWh, https://wedocs.unep.org/bitstream/handle/20.500.11822/20590/Energy_profile_Zambia.pdf?sequence=1&isAllowed=y
+zambia_industry_final_demand_tot <- 344 * 11630
+
 urban_hh_size <- 3.5
 rural_hh_size <- 4.5
 
@@ -59,7 +62,7 @@ discount_rate = 0.15
 
 #Threshold parameters
 threshold_surfacewater_distance = 5000 # (m): distance threshold which discriminates if groundwater pumping is necessary or a surface pump is enough # REF:
-threshold_groundwater_pumping = 150 # (m): maximum depth at which the model allows for water pumping: beyond it, no chance to install the pump # REF:
+threshold_groundwater_pumping = 75 # (m): maximum depth at which the model allows for water pumping: beyond it, no chance to install the pump # REF:
 
 # boundaries for the flow of irrigation pumps, in m3/s
 maxflow_boundaries <- c(1, 25) #i.e. 1-25 m3/h
@@ -88,6 +91,12 @@ eta_motor = 0.75
 # lifetime of the pump
 lifetimepump = 20
 
+# water storage tank range 
+range_tank <- c(1000, 20000) #liters
+
+# water storage tank cost
+tank_usd_lit <- 0.075
+
 # Groundwater pump technical parameters
 rho = 1000 # density of water (1000 kg / m3)
 g = 9.81 # gravitational constant (m / s2)
@@ -114,6 +123,11 @@ pupils_per_school <- 500
 
 threshold_community_elec <- 0.75
 
+#
+
+minutes_cluster <- 180 # minutes of travel time around each settlement to create crop processing clusters
+
+
 #####################
 # Assumed load curves
 #####################
@@ -124,8 +138,11 @@ load_curve_cp = c(0, 0, 0, 0, 0, 0, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.08
 # irrigation
 load_curve_irrig = load_curve_irr = c(0, 0, 0, 0, 0, 0.166, 0.166, 0.166, 0.166, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.166, 0.166)
 
+range_smes_markup <- c(0.6, 0.3)
+
 #number of hours of pumping, 3 during the morning and 3 during the evening
 nhours_irr = sum(load_curve_irrig!=0)
+irrigation_frequency_days <- 2
 
 # import load curve of productive activities
 load_curve_prod_act <- read.csv(find_it('productive profile.csv'))
@@ -182,7 +199,7 @@ rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = 
 # Country-specific data
 #####################
 
-clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(10000)
 clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters$elrate <- clusters$elecpop_start_worldpop/clusters$pop_start_worldpop
@@ -356,11 +373,8 @@ v <- scales::rescale(values(maxflow), to = maxflow_boundaries)
 values(maxflow) <- v
 rm(v); gc()
 
-# water storage tank range 
-range_tank <- c(1000, 20000) #liters
-
-# water storage tank cost
-tank_usd_lit <- 0.075
+mining_sites <- read_sf(find_it("global_mining_polygons_v2.gpkg"))
+mining_sites <- filter(mining_sites, COUNTRY_NAME == countryname)  
 
 traveltime_market = ee$Image("Oxford/MAP/accessibility_to_cities_2015_v1_0")
 
@@ -384,6 +398,11 @@ traveltime <- mask_raster_to_polygon(traveltime, gadm0)
 
 raster_tiers = raster(find_it('tiersofaccess_SSA_2018.nc'))
 raster_tiers <- mask_raster_to_polygon(raster_tiers, gadm0)
+
+friction <- raster(find_it("friction_cut_1209.tif")) # friction layer from Weiss et al. (minutes per meter)
+friction <- mask_raster_to_polygon(friction, gadm0)
+
+cities <- read_sf(find_it("cities.geojson")) %>% filter(cou_name_en==countryname)
 
 #
 

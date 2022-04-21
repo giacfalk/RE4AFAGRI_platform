@@ -89,9 +89,9 @@ clusters$gr_wat_productivity <- exactextractr::exact_extract(groundwater_Product
 ##########
 
 # To fix potential bugs in the data, delete negative values
-clusters <- clusters %>% group_by(sov_a3) %>% mutate(gr_wat_depth=ifelse(is.na(gr_wat_depth), mean(gr_wat_depth, na.rm=T), gr_wat_depth)) %>% ungroup()
+clusters <- clusters %>% mutate(gr_wat_depth=ifelse(is.na(gr_wat_depth), mean(gr_wat_depth, na.rm=T), gr_wat_depth)) %>% ungroup()
 
-clusters <- clusters %>% group_by(sov_a3) %>% mutate(surfw_dist=ifelse(is.nan(surfw_dist), mean(surfw_dist, na.rm=T), surfw_dist)) %>% ungroup()
+clusters <- clusters %>% mutate(surfw_dist=ifelse(is.nan(surfw_dist), mean(surfw_dist, na.rm=T), surfw_dist)) %>% ungroup()
 
 #clusters$surfw_dist <- ifelse(clusters$slope > slope_limit, Inf, clusters$surfw_dist) # an excessive slope renders groundwater pumping not feasible
 
@@ -107,14 +107,14 @@ for (i in c(1:12)){
   aa$geometry=NULL
   aa$geom=NULL
   
-  if(scenarios$groundwater_sustainability_contraint[scenario]==F)
+  if(groundwater_sustainability_contraint==F)
     
-    clusters[paste0("q" , as.character(i))] = aa[paste0('monthly_IRREQ' , "_" , as.character(i))] / 30/nhours_irr
+    clusters[paste0("q" , as.character(i))] = aa[paste0('monthly_IRREQ' , "_" , as.character(i))] / (30/irrigation_frequency_days)/nhours_irr
   
   else{
     
     clusters[paste0("q" , as.character(i))] = (aa[paste0('monthly_IRREQ' , "_" , as.character(i))]     * (1- aa[paste0('monthly_unmet_IRRIG_share' , "_" , as.character(i))])
-    )/ 30/nhours_irr
+    )/ (30/irrigation_frequency_days)/nhours_irr
     
   }
   
@@ -153,7 +153,7 @@ for (i in 1:12){
   aa$geom=NULL
   
   #Calculate monthly electric requirement
-  clusters[paste0('wh_monthly', as.character(i))] = pull(aa[paste0('powerforpump')])*nhours_irr*30
+  clusters[paste0('wh_monthly', as.character(i))] = pull(aa[paste0('powerforpump')])*nhours_irr*(30/irrigation_frequency_days)
   
   aa <- clusters
   aa$geometry=NULL
@@ -192,7 +192,7 @@ for (i in 1:12){
   aa$geometry=NULL
   aa$geom=NULL
   
-  clusters[paste0('surface_er_kwh', as.character(i))] = aa[paste0('surfw_w', as.character(i))]*nhours_irr*30
+  clusters[paste0('surface_er_kwh', as.character(i))] = aa[paste0('surfw_w', as.character(i))]*nhours_irr*(30/irrigation_frequency_days)
   
 }
 
@@ -214,7 +214,7 @@ clusters$which_pumping[clusters$er_kwh_tt<clusters$surface_er_kwh_tt] <- "Ground
 clusters$which_pumping[clusters$surface_er_kwh_tt<clusters$er_kwh_tt] <- "Surface water pumping"
 clusters$which_pumping[(is.na(clusters$which_pumping))] <- "Neither possible"
 
-table(clusters$which_pumping)
+#table(clusters$which_pumping)
 
 #
 
@@ -245,17 +245,21 @@ write_rds(clusters, "clusters_with_data_2.Rds")
 
 
 # # simulate daily profile
-# 
-# for (k in 1:12){
-# 
-#   print(k)
-# 
-#   for (i in 1:24){
-# 
-#     aa <- clusters
-#     aa$geometry=NULL
-# 
-#     clusters[paste0('er_kwh_' , as.character(k) , "_" , as.character(i))] <- (aa[paste0('er_kwh', as.character(k))]/30)*load_curve_irr[i]
-#   }}
+
+if (output_hourly_resolution==T){
+
+for (k in 1:12){
+
+  print(k)
+
+  for (i in 1:24){
+
+    aa <- clusters
+    aa$geometry=NULL
+
+    clusters[paste0('er_kwh_' , as.character(k) , "_" , as.character(i))] <- (aa[paste0('er_kwh', as.character(k))]/30)*load_curve_irr[i]
+  }}
+
+}
 
 save.image(paste0("results/", countrystudy, "/clusters_pumping_module.Rdata"))

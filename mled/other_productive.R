@@ -39,9 +39,9 @@ data_pca <- prcomp(data_pca)
 PCs <- as.data.frame(data_pca$x)
 PCs$PCav <- PCs$PC1
 
-# scales::rescale PCA to 0.3  - 0.6 range
+# scales::rescale PCA to markup range
 
-PCs$PCav <- scales::rescale(PCs$PCav, to = c(0.6, 0.3))
+PCs$PCav <- scales::rescale(PCs$PCav, to = range_smes_markup)
 
 
 #########

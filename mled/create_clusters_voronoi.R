@@ -4,6 +4,12 @@ if (length(grep("clusters_voronoi.gpkg", all_input_files_basename))>0){
   
   clusters_voronoi <- read_sf(find_it("clusters_voronoi.gpkg"))
 
+} 
+
+if (nrow(clusters_voronoi)==nrow(clusters)) {
+  
+  clusters_voronoi <- clusters_voronoi
+  
 } else {
 
 clusters_centroids <- st_centroid(clusters)

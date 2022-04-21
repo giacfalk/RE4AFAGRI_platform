@@ -1,6 +1,6 @@
-# MLED - Multisectoral Latent Electricity Demand assessment platform
+# MLED - Multi-sectoral Latent Electricity Demand assessment platform
 # v2 (LEAP_RE adaptation)
-# 06/04/2022
+# 21/04/2022
 
 ####
 # system parameters
@@ -17,7 +17,7 @@ download_data <- F # flag: download the M-LED database? F if you already have do
 # country
 
 countrystudy <- "zambia" # country to run M-LED on
-exclude_countries <- paste("rwanda", sep="|") # countries to exclude the database files from the current run
+exclude_countries <- paste("rwanda", "nigeria", "zimbabwe", sep="|") # countries to exclude the database files from the current run
 
 ######################
 # scenarios
@@ -28,6 +28,8 @@ rcp <- c("rcp26") # list RCP scenario to run
 
 ######################
 # options and constriants 
+
+output_hourly_resolution <- F  # produce hourly load curves for each month. if false, produce just monthly and yearly totals
 
 groundwater_sustainability_contraint <- T # impose limit on water pumping based on groundwater recharge
 field_size_contraint <- T # only consider small farmland patches (smallholder farming)
@@ -60,6 +62,10 @@ source("crop_module.R")
 timestamp()
 source("pumping_module.R")
 
+# Mining
+timestamp()
+source("mining_module.R")
+
 # Residential energy demand
 timestamp()
 source("residential.R")
@@ -70,11 +76,19 @@ source("health_education_module.R")
 
 # Crop processing and storage
 timestamp()
+source("crop_processing_catchment_areas.R")
+
+timestamp()
 source("crop_processing.R")
 
 # Other productive: SMEs
 timestamp()
 source("other_productive.R")
+
+# Clean output
+timestamp()
+source("cleaner.R")
+
 
 }
 
@@ -84,11 +98,11 @@ source("other_productive.R")
 
 # Write output for soft-linking into OnSSET and NEST and for online visualisation
 
-demand_fields <- c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt")
+demand_fields <- c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt", "mining_kwh_tt")
 
 clusters_onsset <- dplyr::select(clusters, all_of(demand_fields))
 
-colnames(clusters_onsset) <- c("residential", "smes", "healthcare", "schools", "irrigation", "crop_processing", "geometry")
+colnames(clusters_onsset) <- c("residential", "smes", "healthcare", "schools", "irrigation", "crop_processing", "mining", "geometry")
 
 clusters_onsset <- na.omit(clusters_onsset)
 

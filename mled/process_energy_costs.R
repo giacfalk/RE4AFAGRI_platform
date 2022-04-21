@@ -104,7 +104,7 @@ lat = clusters$Y[ncls]
 long =  clusters$X[ncls]
 powerpump <- clusters$powerforpump[ncls] # power of the pump, in KW
 
-dem <- as.numeric(dem_t[ncls,]) / 30 # daily demand, in kwh for each day of each month
+dem <- as.numeric(dem_t[ncls,]) / (30/irrigation_frequency_days) # daily demand, in kwh for each day of each month
 pvout <- as.numeric(pvout_t[ncls,]) # daily generation potential (kWh/kWp) for each day of each month
 sunlighthours <- (daylength(lat=lat,long=long,JD(seq(ISOdate(2019,1,1),ISOdate(2019,12,31),by='month')),tmz=1)[,3]) * 0.65 # number of sunlight hours at 100% potential equivalent ("peak sun") per month
 
