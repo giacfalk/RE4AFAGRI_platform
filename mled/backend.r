@@ -15,13 +15,20 @@ ee_Initialize(email = email, drive = TRUE)
 
 repo_folder <- home_repo_folder <- getwd()
 input_folder = paste0(db_folder , '/input_folder/')
+dir.create(file.path(input_folder), showWarnings = FALSE)
 processed_folder = paste0(db_folder , '/processed_folder/')
+dir.create(file.path(processed_folder), showWarnings = FALSE)
 health_edu_folder = paste0(db_folder , '/health_edu_folder/')
+dir.create(file.path(health_edu_folder), showWarnings = FALSE)
 output_figures_folder = paste0(repo_folder , '/output_figures/')
+dir.create(file.path(output_figures_folder), showWarnings = FALSE)
 input_country_specific <- paste0(repo_folder, "/country_studies/", countrystudy, "/mled_inputs/")
+dir.create(file.path(input_country_specific), showWarnings = FALSE)
 
 all_input_files <- list.files(path=c(input_folder, processed_folder, repo_folder, processed_folder, health_edu_folder), recursive = T, full.names = T)
 
+all_input_files <- all_input_files[-grep(".rds", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep(".rdata", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".dbf", all_input_files)]
 all_input_files <- all_input_files[-grep(".xml", all_input_files)]
 all_input_files <- all_input_files[-grep("onsset", all_input_files)]

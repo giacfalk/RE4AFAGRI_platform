@@ -1,6 +1,6 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
 # v2 (LEAP_RE adaptation)
-# 21/04/2022
+# 26/04/2022
 
 ####
 # system parameters
@@ -12,6 +12,8 @@ db_folder = 'F:/MLED_database' # path where to download the M-LED database
 email<- "giacomo.falchetta@gmail.com" # previously enabled to use Google Earth Engine
 
 download_data <- F # flag: download the M-LED database? F if you already have done so previously.
+
+downscale_cropland <- T # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)
 
 ######################
 # country
@@ -35,7 +37,7 @@ groundwater_sustainability_contraint <- T # impose limit on water pumping based 
 field_size_contraint <- T # only consider small farmland patches (smallholder farming)
 VAT_import_costs <- T # include VAT and import costs on PV and batteries in the analysis
 instalments_business_model <- T # upfront lump sum spread over lifetime for PV & appliances
-process_already_irrigated_crops <- T # crop processing: include energy demand to process yield in already irrigated land
+process_already_irrigated_crops <- F # crop processing: include energy demand to process yield in already irrigated land
 water_tank_storage <- T
 
 ######################

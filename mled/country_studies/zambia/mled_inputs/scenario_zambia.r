@@ -5,7 +5,7 @@ if (download_data==T){
   setwd(input_folder)
   
   #folder link to id
-  jp_folder = "https://drive.google.com/drive/folders/13usehjrqngsAwbXeT60uLpvP2HkdhRm9"
+  jp_folder = "https://drive.google.com/drive/folders/1TYvZuIqkHFBSXDZ2O0jqbv3Wb0i901Qq"
   folder_id = drive_get(as_id(jp_folder))
   
   #find files in folder

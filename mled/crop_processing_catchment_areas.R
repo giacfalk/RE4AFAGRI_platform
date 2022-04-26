@@ -12,6 +12,15 @@ function_sens <- function(x){
 
 #friction <- aggregate(friction, fact=10, fun=function_sens, na.rm=TRUE)## to reduce resolution of orignal friction layer and hasten the process (to the cost of accuracy, of course)
 
+friction <- raster::aggregate(friction, fact=10, fun=mean)
+
+if (length(grep(paste0("clusters_traveltime_processing_", countryiso3, "_", as.character(minutes_cluster),".gpkg"), all_input_files_basename))>0){
+  
+  clusters_traveltime_processing <- read_sf(find_it(paste0("clusters_traveltime_processing_", countryiso3, "_", as.character(minutes_cluster),".gpkg")))
+  
+} else{
+  
+
 Tr <- transition(friction, function_sens, 8) # RAM intensive, can be very slow for large areas
 
 saveRDS(Tr, "T_sens.rds")
@@ -47,7 +56,11 @@ pol <-sf::st_as_sf(data.table::rbindlist(functpop))
 
 clusters_traveltime_processing <- pol %>% group_by(id) %>% summarise()
 
-clusters_traveltime_processing <- fasterize(st_collection_extract(clusters_traveltime_processing, "POLYGON"), population_baseline, "id")
+write_sf(clusters_traveltime_processing, paste0(processed_folder, "clusters_traveltime_processing_", countryiso3, "_", as.character(minutes_cluster),".gpkg"))
+
+}
+
+clusters_traveltime_processing <- fasterize(clusters_traveltime_processing, friction, "id")
 
 clusters$clusters_traveltime_processing_i <- exact_extract(clusters_traveltime_processing, clusters, "sum")
 

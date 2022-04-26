@@ -26,8 +26,15 @@ files <- files[files_crops]
 # mm to m3 -> 1 mm supplies 0.001 m3 per m^2 of soil
 
 files <- pblapply(files, raster)
+
+# convert crop water need to actualy water need by applying irrigation efficiency factors specific to each crop
+
+crops_efficiency_irr <- crops[crops$crop %in% unlist(qdapRegex::ex_between(files, "-area_", "_r.tif")),]
+crops_efficiency_irr <- crops_efficiency_irr[order(crops_efficiency_irr$crop),]
+
 gc()
-rainfed <- pblapply(1:length(files), function(X) {stack(rainfed[[X]] * files[[X]] * 10)})
+
+rainfed <- pblapply(1:length(files), function(X) {stack(rainfed[[X]] * (files[[X]] / crops_efficiency_irr$eta_irr[X]) * 10)})
 
 # sum by month
 
@@ -46,6 +53,22 @@ for (i in 1:12){
   
   clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum")
 }
+
+# downscale irrigation / cropland demand
+
+if (downscale_cropland==T){
+  
+  source("high_res_cropland.R")
+  
+  for (i in 1:12){
+
+    aa <- clusters_voronoi
+    aa$geom=NULL
+    aa$geometry=NULL
+        
+    clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- pull(aa[paste0('monthly_IRREQ' , "_" , as.character(i))]) * clusters_voronoi$crshare_sp
+  
+}}
 
 # Apply sustainability constraint for groundwater depletion
 

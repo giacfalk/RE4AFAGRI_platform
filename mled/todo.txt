@@ -1,13 +1,10 @@
- ## May to June timeline
-
+ ## May to November timeline
+ 
+- Test MLED replication without errors on UNIVE PC
 - Enable output_hourly_resolution option in all scripts
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented)
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1 [ADE's work]
 - Check data inputs are the best possible (and consistent with other modules) -> Greg 12.3
-- Discuss adding mining with Greg (and how to do it)
-
- ## June to November
-
 - Run scenarios for the future
     WaterCrop -> water demand (RCPS) [MARTA]
     groundwater recharge -> climate change (RCPS) [ISIMIP]
@@ -16,6 +13,5 @@
 
  ## December timeline
 
-- Make the input data bundle downloadable and make it callable for full-fledged replication (test on UNIVE pc) -> Think about 12.5 https://cran.r-project.org/web/packages/zen4R/index.html
 - Work on dashboard input data preparation and visualisation
 - Edit output figures and tables module in view of a paper in 2023

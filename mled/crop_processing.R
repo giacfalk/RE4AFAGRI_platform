@@ -72,7 +72,7 @@ for (X in as.vector(energy_crops[,1])){
   
   if (process_already_irrigated_crops==T){
     
-    clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("kwh_" , X , "_tot")]) + (pull(aa[paste0("yield_", X, "_irr__tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X])
+    clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("kwh_" , X , "_tot")]) + pull(aa[paste0("yield_", X, "_irr__tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X]
     
     aa <- clusters
     aa$geom=NULL
@@ -91,6 +91,8 @@ aa$geometry=NULL
 clusters$kwh_cp_tt = as.vector(aa %>%  dplyr::select(starts_with('kwh')) %>% rowSums(na.rm = T) %>% as.numeric())
 
 # processing to take place in post-harvesting months: for each crop 1) take harvesting date 2) take plantation months. for those months between 1 and 2 equally allocate crop processing
+
+gc()
 
 crops <- crops[complete.cases(crops), ]
 crops <-  crops[crops$crop %in% as.vector(energy_crops[,1]), ]
