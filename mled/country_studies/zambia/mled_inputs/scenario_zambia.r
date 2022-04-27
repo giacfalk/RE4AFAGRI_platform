@@ -1,41 +1,3 @@
-if (download_data==T){
-  
-  wd_bk <- getwd()
-  
-  setwd(input_folder)
-  
-  #folder link to id
-  jp_folder = "https://drive.google.com/drive/folders/1TYvZuIqkHFBSXDZ2O0jqbv3Wb0i901Qq"
-  folder_id = drive_get(as_id(jp_folder))
-  
-  #find files in folder
-  files = drive_ls(folder_id)
-  
-  #loop dirs and download files inside them
-  for (i in seq_along(files$name)) {
-    #list files
-    i_dir = drive_ls(files[i, ])
-    
-    #mkdir
-    dir.create(files$name[i])
-    
-    #download files
-    for (file_i in seq_along(i_dir$name)) {
-      #fails if already exists
-      try({
-        drive_download(
-          as_id(i_dir$id[file_i]),
-          path = str_c(files$name[i], "/", i_dir$name[file_i])
-        )
-      })
-    }
-  }
-  
-  
-  setwd(wd_bk)
-  
-}
-
 #####################
 # Parameters
 #####################
@@ -202,14 +164,14 @@ rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = 
 clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(10000)
 clusters <- filter(clusters, pop_start_worldpop>10)
 
-clusters$elrate <- clusters$elecpop_start_worldpop/clusters$pop_start_worldpop
+#clusters$elrate <- clusters$elecpop_start_worldpop/clusters$pop_start_worldpop
 
 clusters_nest <- read_sf(find_it("Zambia_NEST_delineation.shp"))
 
 # Country and provinces shapefiles
-gadm0 = read_rds(find_it(paste0('gadm36_' , countryiso3 , '_0_sf.rds')))
-gadm1 = read_rds(find_it(paste0('gadm36_' , countryiso3 , '_1_sf.rds')))
-gadm2 = read_rds(find_it(paste0('gadm36_' , countryiso3 , '_2_sf.rds')))
+gadm0 = getData(name="GADM", country=countryiso3, level=0)
+gadm1 = getData(name="GADM", country=countryiso3, level=1)
+gadm2 = getData(name="GADM", country=countryiso3, level=2)
 
 # Define extent of country analysed
 ext = extent(gadm0)

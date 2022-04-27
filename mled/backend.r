@@ -14,6 +14,52 @@ ee_Initialize(email = email, drive = TRUE)
 ###########
 
 repo_folder <- home_repo_folder <- getwd()
+
+if (download_data==T){
+  
+  wd_bk <- getwd()
+  
+  setwd(db_folder)
+  
+  #folder link to id
+  jp_folder = "https://drive.google.com/drive/folders/1TYvZuIqkHFBSXDZ2O0jqbv3Wb0i901Qq"
+  folder_id = drive_get(as_id(jp_folder))
+  
+  #find files in folder
+  files = drive_ls(folder_id)
+  
+  #loop dirs and download files inside them
+  for (i in seq_along(files$name)) {
+    #list files
+    i_dir = drive_ls(files[i, ])
+    
+    #mkdir
+    dir.create(files$name[i])
+    
+    #download files
+    for (file_i in seq_along(i_dir$name)) {
+      #fails if already exists
+      try({
+        drive_download(
+          as_id(i_dir$id[file_i]),
+          path = str_c(files$name[i], "/", i_dir$name[file_i])
+        )
+      })
+    }
+  }
+  
+  
+  setwd(wd_bk)
+  
+  input_folder <- processed_folder <- health_edu_folder <- output_figures_folder <- input_country_specific <- db_folder
+  
+}
+
+
+#
+
+if (download_data==F){
+
 input_folder = paste0(db_folder , '/input_folder/')
 dir.create(file.path(input_folder), showWarnings = FALSE)
 processed_folder = paste0(db_folder , '/processed_folder/')
@@ -25,8 +71,16 @@ dir.create(file.path(output_figures_folder), showWarnings = FALSE)
 input_country_specific <- paste0(repo_folder, "/country_studies/", countrystudy, "/mled_inputs/")
 dir.create(file.path(input_country_specific), showWarnings = FALSE)
 
-all_input_files <- list.files(path=c(input_folder, processed_folder, repo_folder, processed_folder, health_edu_folder), recursive = T, full.names = T)
+}
 
+all_input_files <- unique(list.files(path=c(input_folder, processed_folder, repo_folder, processed_folder, health_edu_folder), recursive = T, full.names = T))
+
+all_input_files <- all_input_files[-grep("mat", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep("r_tmp_", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep("results", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep(".pyc", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep(".pdf", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep(".bak", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".rds", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".rdata", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".dbf", all_input_files)]

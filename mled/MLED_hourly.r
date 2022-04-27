@@ -1,5 +1,5 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
-# v2 (LEAP_RE adaptation)
+# v1,1 (LEAP_RE)
 # 26/04/2022
 
 ####
@@ -9,36 +9,39 @@ setwd("D:/OneDrive - IIASA/RE4AFAGRI_platform/mled") # path of the cloned M-LED 
 
 db_folder = 'F:/MLED_database' # path where to download the M-LED database
 
-email<- "giacomo.falchetta@gmail.com" # previously enabled to use Google Earth Engine
+email<- "giacomo.falchetta@gmail.com" # NB; previously enabled to use Google Earth Engine via https://signup.earthengine.google.com
 
-download_data <- F # flag: download the M-LED database? F if you already have done so previously.
+download_data <- T # flag: download the M-LED database? F if you already have done so previously.
 
-downscale_cropland <- T # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)
+downscale_cropland <- T # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)?
 
 ######################
-# country
+# country and year
 
 countrystudy <- "zambia" # country to run M-LED on
-exclude_countries <- paste("rwanda", "nigeria", "zimbabwe", sep="|") # countries to exclude the database files from the current run
+exclude_countries <- paste("rwanda", "nigeria", "zimbabwe", sep="|") # countries in the database files to exclude from the current run
+
+planning_year = 2050 # horizon year to make projections
 
 ######################
 # scenarios
 
-planning_year = 2050 # horizon year to make projections
-scenarios <-scenario <- c("ssp2") # list SSP scenario to run
-rcp <- c("rcp26") # list RCP scenario to run
-
+ssp <- scenario <- c("ssp2") # list SSP scenarios to run
+rcp <- c("rcp26") # list RCP scenarios to run
+scenarios <- expand.grid(ssp = ssp, rcp = rcp)
+  
 ######################
 # options and constriants 
 
 output_hourly_resolution <- F  # produce hourly load curves for each month. if false, produce just monthly and yearly totals
 
-groundwater_sustainability_contraint <- T # impose limit on water pumping based on groundwater recharge
-field_size_contraint <- T # only consider small farmland patches (smallholder farming)
-VAT_import_costs <- T # include VAT and import costs on PV and batteries in the analysis
-instalments_business_model <- T # upfront lump sum spread over lifetime for PV & appliances
+groundwater_sustainability_contraint <- T # impose limit on groundwater pumping based on monthly recharge
+field_size_contraint <- T # consider only small farmland patches (smallholder farming)
 process_already_irrigated_crops <- F # crop processing: include energy demand to process yield in already irrigated land
-water_tank_storage <- T
+
+water_tank_storage <- T # water storage is possible
+VAT_import_costs <- T # include VAT and import costs on PV and batteries in the solar pumps analysis
+instalments_business_model <- T # upfront lump sum spread over lifetime for PV & appliances
 
 ######################
 # run the analysis
@@ -48,9 +51,13 @@ source("backend.R")
 
 for (scenario in scenarios){
   
-# Select the scenario to be operated
+# Load the country and scenario-specific data
 timestamp()
 source(paste0(input_country_specific, "scenario_", countrystudy, ".R"))
+
+# Estimate electricity access levels and current consumption level at each cluster
+timestamp()
+source("electricity_access.R")
 
 # Create catchment areas to link agricultural land to population clusters
 timestamp()
