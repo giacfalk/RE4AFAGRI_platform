@@ -11,8 +11,8 @@ national_official_population_without_access = national_official_population- (nat
 ppp_gdp_capita <- 3457.6
 gini <- 57.1
 
-zambia_electr_final_demand_tot_ <- 947 * 11630 #ktoe to kWh, https://wedocs.unep.org/bitstream/handle/20.500.11822/20590/Energy_profile_Zambia.pdf?sequence=1&isAllowed=y
-zambia_industry_final_demand_tot <- 344 * 11630
+zambia_electr_final_demand_tot_ <- 947 * 11630000  #ktoe to kWh, https://wedocs.unep.org/bitstream/handle/20.500.11822/20590/Energy_profile_Zambia.pdf?sequence=1&isAllowed=y
+zambia_industry_final_demand_tot <- 344 * 11630000 
 
 urban_hh_size <- 3.5
 rural_hh_size <- 4.5
@@ -21,6 +21,12 @@ rural_hh_size <- 4.5
 today = 2022
 planning_horizon = planning_year - today
 discount_rate = 0.15 
+
+# if cluster population is smaller than parameter value, then do not allow for productive demand
+pop_threshold_productive_loads <- 15
+
+# Maximum distance of cropland to include load in community load (radius buffer in meters from cluster centroid)
+m_radius_buffer_cropland_distance <- 5000
 
 #Threshold parameters
 threshold_surfacewater_distance = 5000 # (m): distance threshold which discriminates if groundwater pumping is necessary or a surface pump is enough # REF:
@@ -161,17 +167,20 @@ rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = 
 # Country-specific data
 #####################
 
-clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(10000)
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(1000)
 clusters <- filter(clusters, pop_start_worldpop>10)
+
+clusters_centroids <- st_centroid(clusters)
+clusters_buffers_cropland_distance <- st_transform(clusters_centroids, 3395) %>% st_buffer(m_radius_buffer_cropland_distance) %>% st_transform(4326)
 
 #clusters$elrate <- clusters$elecpop_start_worldpop/clusters$pop_start_worldpop
 
 clusters_nest <- read_sf(find_it("Zambia_NEST_delineation.shp"))
 
 # Country and provinces shapefiles
-gadm0 = getData(name="GADM", country=countryiso3, level=0)
-gadm1 = getData(name="GADM", country=countryiso3, level=1)
-gadm2 = getData(name="GADM", country=countryiso3, level=2)
+gadm0 = st_as_sf(getData(name="GADM", country=countryiso3, level=0))
+gadm1 = st_as_sf(getData(name="GADM", country=countryiso3, level=1))
+gadm2 = st_as_sf(getData(name="GADM", country=countryiso3, level=2))
 
 # Define extent of country analysed
 ext = extent(gadm0)
@@ -347,10 +356,6 @@ diesel_price <- mask_raster_to_polygon(diesel_price, gadm0)
 DepthToGroundwater = read.delim(find_it('xyzASCII_dtwmap_v1.txt'), sep='\t')
 GroundwaterStorage = read.delim(find_it('xyzASCII_gwstor_v1.txt'), sep='\t')
 GroundwaterProductivity = read.delim(find_it('xyzASCII_gwprod_v1.txt'), sep='\t')
-
-# Import climatezones (Default datasets used: GAEZ soil classes)
-climatezones = raster(find_it('GAEZ_climatezones.tif'))
-climatezones <- mask_raster_to_polygon(climatezones, gadm0)
 
 roads<-raster(find_it('grip4_total_dens_m_km2.asc'), crs="+proj=longlat +datum=WGS84")
 roads <- mask_raster_to_polygon(roads, gadm0)

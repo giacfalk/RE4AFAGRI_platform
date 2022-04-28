@@ -1,6 +1,6 @@
 if (!require("pacman")) install.packages("pacman"); library(pacman)
 
-pacman::p_load(sf, raster, exactextractr, dplyr, readxl, cowplot, ggplot2, scales, tidyr, tidyverse, rgeos, gdalUtils, chron, nngeo, strex, rgee, data.table, gdata, FactoMineR, factoextra, maps  , mapdata, maptools, grid, randomForestSRC, countrycode, remotes, stars, gdistance, rgl, rasterVis, qlcMatrix, stars, tvm, gtools, wbstats, stars, patchwork, ggrepel, terra, pbapply, googledrive, nnet, caret, randomForest, fasterize, beepr, ncdf4, s2)
+pacman::p_load(sf, raster, exactextractr, dplyr, readxl, cowplot, ggplot2, scales, tidyr, tidyverse, rgeos, gdalUtils, chron, nngeo, strex, rgee, data.table, gdata, FactoMineR, factoextra, maps  , mapdata, maptools, grid, randomForestSRC, countrycode, remotes, stars, gdistance, rgl, rasterVis, qlcMatrix, stars, tvm, gtools, wbstats, stars, patchwork, ggrepel, terra, pbapply, googledrive, nnet, caret, randomForest, fasterize, beepr, ncdf4, s2, zip, sfsmisc, dissever, lsa, doBy)
 
 tmpDir(create=TRUE)
 
@@ -28,26 +28,7 @@ if (download_data==T){
   #find files in folder
   files = drive_ls(folder_id)
   
-  #loop dirs and download files inside them
-  for (i in seq_along(files$name)) {
-    #list files
-    i_dir = drive_ls(files[i, ])
-    
-    #mkdir
-    dir.create(files$name[i])
-    
-    #download files
-    for (file_i in seq_along(i_dir$name)) {
-      #fails if already exists
-      try({
-        drive_download(
-          as_id(i_dir$id[file_i]),
-          path = str_c(files$name[i], "/", i_dir$name[file_i])
-        )
-      })
-    }
-  }
-  
+  map(files$id, ~ purrr::safely(drive_download)(as_id(.x)))
   
   setwd(wd_bk)
   
@@ -64,8 +45,6 @@ input_folder = paste0(db_folder , '/input_folder/')
 dir.create(file.path(input_folder), showWarnings = FALSE)
 processed_folder = paste0(db_folder , '/processed_folder/')
 dir.create(file.path(processed_folder), showWarnings = FALSE)
-health_edu_folder = paste0(db_folder , '/health_edu_folder/')
-dir.create(file.path(health_edu_folder), showWarnings = FALSE)
 output_figures_folder = paste0(repo_folder , '/output_figures/')
 dir.create(file.path(output_figures_folder), showWarnings = FALSE)
 input_country_specific <- paste0(repo_folder, "/country_studies/", countrystudy, "/mled_inputs/")
@@ -73,19 +52,20 @@ dir.create(file.path(input_country_specific), showWarnings = FALSE)
 
 }
 
-all_input_files <- unique(list.files(path=c(input_folder, processed_folder, repo_folder, processed_folder, health_edu_folder), recursive = T, full.names = T))
+all_input_files <- unique(list.files(path=c(input_folder, processed_folder, repo_folder), recursive = T, full.names = T))
 
+all_input_files <- all_input_files[-grep("\\.docx$", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep("\\.png$", all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[-grep("\\.r$", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep("mat", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep("r_tmp_", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep("results", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".pyc", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".pdf", all_input_files,ignore.case=TRUE)]
-all_input_files <- all_input_files[-grep(".bak", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".rds", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".rdata", all_input_files,ignore.case=TRUE)]
 all_input_files <- all_input_files[-grep(".dbf", all_input_files)]
 all_input_files <- all_input_files[-grep(".xml", all_input_files)]
-all_input_files <- all_input_files[-grep("onsset", all_input_files)]
 all_input_files <- all_input_files[-grep(exclude_countries, all_input_files)]
 
 all_input_files_basename <- basename(all_input_files)

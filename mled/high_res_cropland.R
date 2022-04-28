@@ -29,7 +29,7 @@ stub <- vector()
 
 for (i in 1:nrow(grid)){
 
-stub[i] <- paste0("https://deafrica-services.s3.af-south-1.amazonaws.com/crop_mask_", grid$types[i], "/1-0-0/x", grid$x[i], "/y", grid$y[i], "/2019--P1Y/crop_mask_", grid$types[i], "_x", grid$x[i], "y", grid$y[i], "_2019--P1Y_filtered.tif")
+stub[i] <- paste0("https://deafrica-services.s3.af-south-1.amazonaws.com/crop_mask_", grid$types[i], "/1-0-0/x", grid$x[i], "/y", grid$y[i], "/2019--P1Y/crop_mask_", grid$types[i], "_x", grid$x[i], "y", grid$y[i], "_2019--P1Y_mask.tif")
 
 }
 

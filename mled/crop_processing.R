@@ -13,6 +13,24 @@ files <- files[grepl(paste(energy_crops[,1], collapse="|") , files)]
 files2 = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'r.tif')
 files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2)]
 
+if(field_size_contraint==T){
+  
+  files <- pblapply(files, function(X){mask(X, field_size)})
+  files2 <- pblapply(files2, function(X){mask(X, field_size)})
+  
+}
+
+if (buffers_cropland_distance==T){
+  
+  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
+  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
+  
+  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
+  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
+  
+}
+
+
 for (X in 1:length(files)){
   a = paste0("A_" , gsub("_r.tif", "", gsub("spam2010v1r0_global_harvested-area_", "", files2[X])))
   clusters[a] <- exactextractr::exact_extract(raster(paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff/", files2[X])), clusters_voronoi, fun="sum")
@@ -35,6 +53,23 @@ files <- files[grepl(paste(energy_crops[,1], collapse="|") , files)]
 
 files2 = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'i.tif')
 files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2)]
+
+if(field_size_contraint==T){
+  
+  files <- pblapply(files, function(X){mask(X, field_size)})
+  files2 <- pblapply(files2, function(X){mask(X, field_size)})
+  
+}
+
+if (buffers_cropland_distance==T){
+  
+  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
+  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
+  
+  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
+  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
+  
+}
 
 for (X in 1:length(files)){
   a = paste0("A_" , gsub("_i.tif", "", gsub("spam2010v1r0_global_harvested-area_", "", files2[X])), "_irr")

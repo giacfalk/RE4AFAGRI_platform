@@ -4,7 +4,7 @@ GHSSMOD2015 = ee$ImageCollection("JRC/GHSL/P2016/BUILT_LDSMT_GLOBE_V1")$select('
 
 GHSSMOD2015 = GHSSMOD2015$gte(3)
 
-nl19 =  ee$ImageCollection("NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG")$filterDate('2019-01-01', '2020-01-01')$select('avg_rad')$median()$subtract(0.125)
+nl19 =  ee$Image("users/giacomofalchetta/ntl_payne_2021")$subtract(0.125)
 nl19 = nl19$where(nl19$lt(0.25), ee$Image(0))
 
 GHSSMOD2015_lit <- GHSSMOD2015$mask(nl19$gt(0))
@@ -45,8 +45,201 @@ GHSSMOD2015_lit <- ee_as_raster(
 
 clusters$elrate <-  exact_extract(GHSSMOD2015_lit, clusters, fun="sum") / exact_extract(GHSSMOD2015, clusters, fun="sum")
 
+######
+
+# Spread current consumption
+
+total <- zambia_electr_final_demand_tot_
+weights <- rep(1/6, 6)
+
+pop <- raster(find_it("GHS_POP_E2015_GLOBE_R2019A_4326_30ss_V1_0.tif"))
+pop <- crop(pop, extent(gadm0))
+pop <- rgis::fast_mask(pop, gadm0)
+values(pop) <- ifelse(is.na(values(pop)), 0, values(pop))
+pop <- rgis::fast_mask(pop, gadm0)
+
+listone <- read.csv(find_it(paste0(countryiso3, "_relative_wealth_index.csv")))
+listone$iso3c <- listone$.id
+listone$.id = NULL
+data <- st_as_sf(as.data.frame(listone), coords=c("longitude", "latitude"), crs=4326) %>% st_transform(3395) %>% st_buffer(2400) %>% st_transform(4326)
+rwi <- rasterize(data, pop, field = data$rwi, fun = max, na.rm = TRUE) # or mean
+rwi <- rgis::fast_mask(rwi, gadm0)
+rwi <- rwi + abs(min(values(rwi), na.rm=T))
+
+el_access <- GHSSMOD2015_lit
+el_access <- crop(el_access, extent(gadm0))
+values(el_access) <- ifelse(is.na(values(el_access)), 0, 1)
+el_access <- rgis::fast_mask(el_access, gadm0)
+el_access <- projectRaster(el_access, pop, method="ngb")
+
+image1 <- raster(find_it('travel.tif'))
+image1 <- crop(image1, extent(gadm0))
+image1 <- rgis::fast_mask(image1, gadm0)
+tt <-projectRaster(image1, pop, method="ngb")
+tt <- -tt 
+tt <- tt - min(values(tt), na.rm=T)
+
+prio <- read.csv(find_it("PRIO-GRID Static Variables - 2021-05-24.csv"))
+prio <- st_as_sf(prio, coords = c("xcoord", "ycoord"), crs=4326)
+prio2 <- read.csv(find_it("PRIO-GRID Yearly Variables for 2014-2014 - 2021-05-24.csv"))
+prio2 <- filter(prio2, year==2014)
+prio <- bind_cols(prio, prio2)
+
+prio <- prio %>% dplyr::select(diamprim_s, diamsec_s, goldvein_s, gem_s, petroleum_s)
+prio <- prio %>% mutate(resources = as.numeric(rowSums(prio[,c(1:5),drop=TRUE], na.rm=T)))
+
+# resources (PRIO)
+prio <- filter(prio, resources>0)
+prio <- st_transform(prio, 3395) %>% st_buffer(1000) %>% st_transform(4326)
+
+resources <- fasterize::fasterize(prio, pop, field="resources", fun="first")
+resources <- resources>0
+resources <- rgis::fast_mask(resources, gadm0)
+
+# resources (PRIO)
+resources <- raster::distance(projectRaster(resources, crs="+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+resources <- projectRaster(resources, crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs 
+")
+resources <- rgis::fast_mask(resources/1000, gadm0)
+resources <- -resources 
+resources <- resources - min(values(resources), na.rm=T)
 
 #
 
+cdds <- stack(find_it("gldas_0p25_deg_cdd_base_T_24C_1970_2018_ann.nc4"))
 
-# Insert dissever for consumption here #
+cdds_l <- list()
+
+for (i in 1:nlayers(cdds)){
+  
+  cdds_l[[i]] <- crop(cdds[[i]], extent(gadm0))
+  
+}
+
+cdds <- stack(cdds_l)
+cdds <- calc(cdds, fun=sum, na.rm=T)
+
+cdds <-projectRaster(cdds, pop, method="ngb")
+
+##############
+
+covs_1 <- aggregate(pop, fact=200, "sum")
+
+covs_2 <- aggregate(rwi, fact=200, "mean") # try max
+
+covs_2 <- covs_2 + abs(min(values(covs_2), na.rm=T)) + 0.01
+
+covs_3 <- aggregate(el_access, fact=200, "sum")
+
+covs_4 <- aggregate(resources, fact=200, "sum")
+
+covs_5 <- aggregate(tt, fact=200, "mean")
+
+covs_6 <- aggregate(cdds, fact=200, "mean")
+
+
+###
+
+fine <- pop
+values(fine) <- ifelse(values(fine) == 0, NA, values(fine) )
+fine2 <- rwi
+fine3 <- el_access
+values(fine3) <- ifelse(values(fine3) == 0, NA, values(fine3) )
+resources <- projectRaster(resources, pop)
+
+fine <- stack(fine, fine2, fine3,resources, tt, cdds)
+
+covs <- stack(covs_1, covs_2, covs_3, covs_4, covs_5, covs_6)
+
+##
+
+begin_disserve <- function(total, covs, weights){
+  
+  sum_weights <- sum(weights)
+  
+  covs <- covs / unlist(lapply(as.list(covs), function(X){sum(values(X), na.rm=T)}))
+  
+  cov_weights <- covs * (weights/sum_weights)
+  
+  datasum<- stackApply(cov_weights, indices = nlayers(cov_weights), fun = sum)
+  
+  return(datasum * total)
+  
+}
+
+output <- begin_disserve(total, covs, weights)
+
+min_iter <- 3 # Minimum number of iterations
+max_iter <- 10 # Maximum number of iterations
+p_train <- 0.25 # Subsampling of the initial data
+
+res_rf <- dissever(
+  coarse = output, # stack of fine resolution covariates
+  fine = fine, # coarse resolution raster
+  method = "rf", # regression method used for disseveration
+  p = p_train, # proportion of pixels sampled for training regression model
+  min_iter = min_iter, # minimum iterations
+  max_iter = max_iter # maximum iterations
+)
+
+res_gam <- dissever(
+  coarse = output, # stack of fine resolution covariates
+  fine = fine, # coarse resolution raster
+  method = "gamSpline", # regression method used for disseveration
+  p = p_train, # proportion of pixels sampled for training regression model
+  min_iter = min_iter, # minimum iterations
+  max_iter = max_iter # maximum iterations
+)
+
+res_lm <- dissever(
+  coarse = output, # stack of fine resolution covariates
+  fine = fine, # coarse resolution raster
+  method = "lm", # regression method used for disseveration
+  p = p_train, # proportion of pixels sampled for training regression model
+  min_iter = min_iter, # minimum iterations
+  max_iter = max_iter # maximum iterations
+)
+
+# plot(caret::varImp(res_rf$fit))
+# 
+# par(mfrow = c(2, 2))
+# plot(res_rf, type = 'map', main = "Random Forest")
+# plot(res_gam, type = 'map', main = "GAM")
+# plot(res_lm, type = 'map', main = "Linear Model")
+# dev.off()
+# 
+# par(mfrow = c(2, 2))
+# plot(res_rf, type = 'perf', main = "Random Forest")
+# plot(res_gam, type = 'perf', main = "GAM")
+# plot(res_lm, type = 'perf', main = "Linear Model")
+# dev.off()
+
+preds <- extractPrediction(list(res_rf$fit, res_gam$fit, res_lm$fit))
+# plotObsVsPred(preds)
+# dev.off()
+
+perf <- preds %>%
+  group_by(model, dataType) %>%
+  summarise(
+    rsq = cor(obs, pred)^2,
+    rmse = sqrt(mean((pred - obs)^2))
+  )
+
+# We can weight results with Rsquared
+w <- perf$rsq / sum(perf$rsq)
+
+# Make stack of weighted predictions and compute sum
+l_maps <- list(res_gam$map, res_lm$map, res_rf$map)
+
+ens <- lapply(1:3, function(x) l_maps[[x]] * w[x]) %>%
+  stack %>%
+  sum
+
+
+res_rf_w <- ens/sum(values(ens), na.rm=T)
+
+res_rf <- res_rf_w * total
+
+####
+
+clusters$current_consumption_kWh <- exact_extract(res_rf, clusters, "sum")

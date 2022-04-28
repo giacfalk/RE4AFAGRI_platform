@@ -1,18 +1,24 @@
 # extract nighttime lights above mining sites
 
 replacement = ee$Image(0)
+replacement_top = ee$Image(100)
+
 noise_floor <- 0.25
-nl =  ee$ImageCollection("NOAA/VIIRS/DNB/MONTHLY_V1/VCMCFG")$filterDate('2021-01-01', '2022-01-01')$select('avg_rad')$median()$subtract(0.125)
+noise_floor_top <- 100
+
+nl =  ee$Image("users/giacomofalchetta/ntl_payne_2021")$subtract(0.125)
 nl = nl$where(nl$lt(noise_floor), replacement)
+nl = nl$where(nl$gt(noise_floor_top), replacement_top)
+
 mining_sites_nl <- (nl$reduceRegions(reducer = ee$Reducer$sum(), collection=sf_as_ee(mining_sites), scale=450) %>% ee_as_sf() %>% dplyr::select(sum) %>% st_set_geometry(NULL))$sum
 
 mining_sites$ntl <- mining_sites_nl
 
 #
 
-mining_sites$AREA <- ifelse(mining_sites$ntl==0, 0, mining_sites$AREA)
+mining_sites <- filter(mining_sites, ntl>0)
 
-mining_sites$mining_kwh_tt <- zambia_industry_final_demand_tot * (mining_sites$AREA / sum(mining_sites$AREA))
+mining_sites$mining_kwh_tt <- zambia_industry_final_demand_tot * (mining_sites$ntl / sum(mining_sites$ntl))
 
 clusters_mining <- mining_sites
 

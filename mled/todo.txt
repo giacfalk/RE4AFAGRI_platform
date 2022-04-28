@@ -1,9 +1,18 @@
- ## May to November timeline
+ ## 1st half of May timeline (by 20th)
  
-- Test MLED replication without errors on UNIVE PC
+- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there)
 - Electricity access + consumption module -> valuta far crescere i consumi dove già ci sono oggi
+- Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
+- Send to beta testers
+
+# 2nd half of May - first half of June
+- What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
 - Enable output_hourly_resolution option in all scripts
-- Clean code, variable names, etc. in all scripts (make it more human-readable and commented)
+
+##
+
+# June to November timeline
+
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1 [ADE's work]
 - Check data inputs are the best possible (and consistent with other modules) -> Greg 12.3
 - Run scenarios for the future
@@ -15,4 +24,4 @@
  ## December timeline
 
 - Work on dashboard input data preparation and visualisation
-- Edit output figures and tables module in view of a paper in 2023
+- Edit output figures and tables module in view of a paper to be submitted in 2023
