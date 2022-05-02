@@ -5,13 +5,15 @@
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
 - Send to beta testers
 
+#####
+
 # 2nd half of May - first half of June
 - What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
 - Enable output_hourly_resolution option in all scripts
 
 ##
 
-# June to November timeline
+# Mid june to November timeline
 
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1 [ADE's work]
 - Check data inputs are the best possible (and consistent with other modules) -> Greg 12.3
@@ -21,7 +23,7 @@
     socio-econoic development  (SSPs) [ISIMIP]
     (crop change -> but would need to first feed it into WaterCrop...)
 
- ## December timeline
+ ## December  - January 2023 timeline
 
 - Work on dashboard input data preparation and visualisation
 - Edit output figures and tables module in view of a paper to be submitted in 2023

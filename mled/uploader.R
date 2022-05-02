@@ -1,25 +1,40 @@
-drive_auth(email="giacomo.falchetta@unive.it")
-
 # jp_folder = "https://drive.google.com/drive/folders/1TYvZuIqkHFBSXDZ2O0jqbv3Wb0i901Qq"
 # folder_id = drive_get(as_id(jp_folder))
 # files = drive_ls(folder_id)
 # lapply(files$id, drive_rm)
 
 # sizes <- vector()
-
+# 
 # for (i in 1:length(all_input_files)){
 # sizes[i] <- file.info(all_input_files[i])$size
 # }
-#
+# #
 # sizes <- data.frame(all_input_files, sizes)
 
-#zip::zip(zipfile="F:/compressed_MLED_db.zip", files=all_input_files, mode = "cherry-pick")
+all_input_files_stub <- gsub("F:/MLED_database/", "", all_input_files)
+all_input_files_stub <- gsub("//", "/", all_input_files_stub)
 
-for (i in 1:length(all_input_files)){
-print(i)
-drive_upload(all_input_files[i], path=as_id("1TYvZuIqkHFBSXDZ2O0jqbv3Wb0i901Qq"), overwrite = T)
-}
+setwd("F:/MLED_database/")
 
+sapply(file.path("H:/Il mio Drive/MLED_database", dirname(all_input_files_stub)), 
+       dir.create, recursive = TRUE, showWarnings = FALSE)
 
 #
 
+googledrive::drive_auth()
+
+out <- list()
+
+for (i in 1:length(all_input_files_stub)){
+  print(i)
+out[[i]] <- drive_upload(media = all_input_files_stub[i], path = paste0('~/MLED_database/',dirname(all_input_files_stub[i]), "/"), name=basename(all_input_files_stub[i]), overwrite = T)
+
+if (is.null(out[[i]])){
+  
+  out[[i]] <- drive_upload(media = all_input_files_stub[i], path = paste0('~/MLED_database/',dirname(all_input_files_stub[i]), "/"), name=basename(all_input_files_stub[i]), overwrite = T)
+  
+  
+}}
+
+write_rds(out, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index.rds")
+write_rds(all_input_files_stub, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index_stubs.rds")
