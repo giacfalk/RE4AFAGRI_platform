@@ -38,3 +38,5 @@ if (is.null(out[[i]])){
 
 write_rds(out, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index.rds")
 write_rds(all_input_files_stub, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index_stubs.rds")
+
+setwd("D:/OneDrive - IIASA/RE4AFAGRI_platform/mled")

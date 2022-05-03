@@ -22,10 +22,13 @@ if (download_data==T){
   
   setwd(db_folder)
   
+  r <- sapply(file.path(db_folder, dirname(all_input_files_stub)), 
+         dir.create, recursive = TRUE, showWarnings = FALSE)
+  
   for (i in 1:length(all_input_files_stub)){
     print(paste0("Downloading database. Progress: ", as.character(round((i/length(all_input_files_stub))*100, 3)), "%"))
-    drive_download(file=out[[1]]$id,
-                   path = all_input_files_stub[1], overwrite = T
+    drive_download(file=out[[i]]$id,
+                   path = paste0(getwd(), "/", all_input_files_stub[i]), overwrite = T
     )}
   
   setwd(wd_bk)
@@ -57,8 +60,8 @@ user.input <- function(prompt) {
 
 
 find_it <- function(X){
-
-  out_file <- all_input_files[str_detect(all_input_files_basename, paste0('\\b', X, '\\b'))]
+  
+    out_file <- all_input_files[str_detect(all_input_files_basename, paste0('\\b', X, '\\b'))]
   
   if(length(out_file)>1){
     
