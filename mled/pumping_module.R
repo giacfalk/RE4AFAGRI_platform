@@ -45,7 +45,7 @@ img_02 <- raster(paste0(input_folder, "groundwater_distance.tif"))
 #   st_make_valid() %>% st_union() %>% st_transform(4326) %>% st_as_sf()
 #
 #
-# img_02 <- rgis::mask_raster_to_polygon(img_02, clusters)
+# img_02 <- mask_raster_to_polygon(img_02, clusters)
 #
 # writeRaster(img_02,"D:/OneDrive - IIASA/Current papers/Groundwater_economic_feasibility/Groundwater-Cost/Groundwater-Cost/data/noid_image.tif", overwrite=T)
 

@@ -59,7 +59,7 @@ for (scenario in scenarios){
   
 # Load the country and scenario-specific data
 timestamp()
-source(paste0(input_country_specific, "scenario_", countrystudy, ".R"))
+source(paste0("scenario_", countrystudy, ".R"))
 
 # Estimate electricity access levels and dowscale current consumption level at each cluster
 timestamp()
