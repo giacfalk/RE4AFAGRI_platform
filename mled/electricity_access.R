@@ -1,6 +1,6 @@
 geom <- ee$Geometry$Rectangle(c(as.vector(extent(gadm0))[1], as.vector(extent(gadm0))[3], as.vector(extent(gadm0))[2], as.vector(extent(gadm0))[4]))
 
-GHSSMOD2015 = ee$ImageCollection("JRC/GHSL/P2016/BUILT_LDSMT_GLOBE_V1")$select('built')$filterDate('2014-01-01', '2016-01-01')$median()
+GHSSMOD2015 = ee$Image("JRC/GHSL/P2016/BUILT_LDSMT_GLOBE_V1")$select('built')
 
 GHSSMOD2015 = GHSSMOD2015$gte(3)
 
@@ -16,7 +16,7 @@ if (paste0("builtup_", countryiso3, ".tif") %in% all_input_files_basename){
 } else {
 
 GHSSMOD2015 <- ee_as_raster(
-  image = slope,
+  image = GHSSMOD2015,
   via = "drive",
   region = geom,
   scale = 500,
@@ -34,7 +34,7 @@ if (paste0("builtup_lit_", countryiso3, ".tif") %in% all_input_files_basename){
   
 
 GHSSMOD2015_lit <- ee_as_raster(
-  image = slope,
+  image = GHSSMOD2015_lit,
   via = "drive",
   region = geom,
   scale = 500,
