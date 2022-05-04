@@ -6,7 +6,15 @@ tmpDir(create=TRUE)
 
 if (!require("rgis")) remotes::install_github("JGCRI/rgis"); library(rgis)
 
-mask_raster_to_polygon <- rgis::fast_mask
+mask_raster_to_polygon <- function (raster_object, polygon) 
+{
+  if (class(polygon)[[1]] != "sf") 
+    polygon <- st_as_sf(polygon)
+  r_crs <- st_crs(projection(raster_object))
+  polys <- polygon %>% st_transform(crs = r_crs)
+  n_lcs <- crop(raster_object, polys) %>% mask(polys)
+  return(n_lcs)
+}
 
 if (!isTRUE(ee_check())) {ee_install()}
 ee_Initialize(email, drive = TRUE)
