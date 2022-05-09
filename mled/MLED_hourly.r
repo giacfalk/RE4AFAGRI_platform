@@ -1,6 +1,6 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
 # v1.1 (LEAP_RE)
-# 03/05/2022
+# 09/05/2022
 
 ####
 # system parameters
@@ -43,11 +43,13 @@ buffers_cropland_distance <- T # do not include agricultural loads from cropland
 
 field_size_contraint <- T # consider only small farmland patches (smallholder farming)
 
-process_already_irrigated_crops <- F # crop processing: include energy demand to process yield in already irrigated land
+process_already_irrigated_crops <- T # crop processing: include energy demand to process yield in already irrigated land
 
 water_tank_storage <- T # water storage is possible
+
 VAT_import_costs <- T # include VAT and import costs on PV and batteries in the solar pumps analysis
-instalments_business_model <- T # upfront lump sum spread over lifetime for PV & appliances
+
+instalments_business_model <- T # upfront lump sum spread over lifetime for solar PV pumps costing
 
 ######################
 # run the analysis

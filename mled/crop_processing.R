@@ -13,36 +13,42 @@ files <- files[grepl(paste(energy_crops[,1], collapse="|") , files)]
 files2 = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'r.tif')
 files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2)]
 
-if(field_size_contraint==T){
-  
-  files <- pblapply(files, function(X){mask(X, field_size)})
-  files2 <- pblapply(files2, function(X){mask(X, field_size)})
-  
-}
+## implement these constraints
 
-if (buffers_cropland_distance==T){
-  
-  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
-  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
-  
-  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
-  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
-  
-}
+files <- lapply(files, function(X)(raster(find_it(X))))
+files2 <- lapply(files2, function(X)(raster(find_it(X))))
 
+field_size <- raster(find_it("field_size_10_40_cropland.img"))
+field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
+
+if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(files[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); files <- pblapply(files, function(X){return(mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi))))}); for (i in 1:length(files)){crs(files[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,files[[1]]); files <- pblapply(files, function(X){mask(X, field_size)})}
+
+
+field_size <- raster(find_it("field_size_10_40_cropland.img"))
+field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
+
+if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(files2[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); files2 <- pblapply(files2, function(X){return(mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi))))}); for (i in 1:length(files2)){crs(files2[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,files2[[1]]); files2 <- pblapply(files2, function(X){mask(X, field_size)})}
+
+if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRaster(clusters_buffers_cropland_distance,files[[1]], method = "ngb"); files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})}
+
+if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRaster(clusters_buffers_cropland_distance,files2[[1]], method = "ngb"); files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})}
+
+####
 
 for (X in 1:length(files)){
-  a = paste0("A_" , gsub("_r.tif", "", gsub("spam2010v1r0_global_harvested-area_", "", files2[X])))
-  clusters[a] <- exactextractr::exact_extract(raster(paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff/", files2[X])), clusters_voronoi, fun="sum")
+  a = paste0("A_" , gsub("spam2010v1r0_global_harvested.area_", "", names(files2[[X]])))
+  clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="sum")
+  clusters[a] <- ifelse(is.na( clusters[a]), 0,  clusters[a])
   
-  a = paste0("Y_" , gsub("_r.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])))
-  clusters[a] <- exactextractr::exact_extract(raster(paste0(input_folder, "spam_folder/spam2010v1r0_global_yield.geotiff/", files[X])), clusters_voronoi, fun="mean")
+  a = paste0("Y_" , gsub("spam2010v1r0_global_yield_", "", names(files[[X]])))
+  clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="mean")
+  clusters[a] <- ifelse(is.na( clusters[a]), 0,  clusters[a])
   
   aa <- clusters
   aa$geom=NULL
   aa$geometry=NULL
   
-  clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("_r.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])), "_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("_r.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])))])) 
+  clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])))])) 
 }
 
 ################
@@ -54,35 +60,42 @@ files <- files[grepl(paste(energy_crops[,1], collapse="|") , files)]
 files2 = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'i.tif')
 files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2)]
 
-if(field_size_contraint==T){
-  
-  files <- pblapply(files, function(X){mask(X, field_size)})
-  files2 <- pblapply(files2, function(X){mask(X, field_size)})
-  
-}
+## implement these constraints
 
-if (buffers_cropland_distance==T){
-  
-  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
-  files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})
-  
-  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
-  files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})
-  
-}
+files <- lapply(files, function(X)(raster(find_it(X))))
+files2 <- lapply(files2, function(X)(raster(find_it(X))))
+
+field_size <- raster(find_it("field_size_10_40_cropland.img"))
+field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
+
+if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(files[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); files <- pblapply(files, function(X){return(mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi))))}); for (i in 1:length(files)){crs(files[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,files[[1]]); files <- pblapply(files, function(X){mask(X, field_size)})}
+
+
+field_size <- raster(find_it("field_size_10_40_cropland.img"))
+field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
+
+if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(files2[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); files2 <- pblapply(files2, function(X){return(mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi))))}); for (i in 1:length(files2)){crs(files2[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,files2[[1]]); files2 <- pblapply(files2, function(X){mask(X, field_size)})}
+
+if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRaster(clusters_buffers_cropland_distance,files[[1]], method = "ngb"); files <- pblapply(files, function(X){mask(X, clusters_buffers_cropland_distance)})}
+
+if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRaster(clusters_buffers_cropland_distance,files2[[1]], method = "ngb"); files2 <- pblapply(files2, function(X){mask(X, clusters_buffers_cropland_distance)})}
+
+####
 
 for (X in 1:length(files)){
-  a = paste0("A_" , gsub("_i.tif", "", gsub("spam2010v1r0_global_harvested-area_", "", files2[X])), "_irr")
-  clusters[a] <- exactextractr::exact_extract(raster(paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff/", files2[X])), clusters_voronoi, fun="sum")
+  a = paste0("A_" , gsub("spam2010v1r0_global_harvested.area_", "", names(files2[[X]])), "rr")
+  clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="sum")
+  clusters[a] <- ifelse(is.na( clusters[a]), 0,  clusters[a])
   
-  a = paste0("Y_" , gsub("_i.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])), "_irr")
-  clusters[a] <- exactextractr::exact_extract(raster(paste0(input_folder, "spam_folder/spam2010v1r0_global_yield.geotiff/", files[X])), clusters_voronoi, fun="mean")
+  a = paste0("Y_" , gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "rr")
+  clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="mean")
+  clusters[a] <- ifelse(is.na( clusters[a]), 0,  clusters[a])
   
   aa <- clusters
   aa$geom=NULL
   aa$geometry=NULL
   
-  clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("_i.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])), "_irr_", "_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("_i.tif", "", gsub("spam2010v1r0_global_yield_", "", files[X])), "_irr")])) 
+  clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "rr",  "_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "rr")])) 
 }
 
 #

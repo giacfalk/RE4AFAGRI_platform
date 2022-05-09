@@ -66,7 +66,7 @@ clusters_voronoi$high_res_cropland_area_ha <- Reduce(`+`, cropland) * 0.01
 ###
 
 id_raster <- files[[1]]
-values(id_raster) <- 1:ncells(id_raster)
+values(id_raster) <- 1:ncell(id_raster)
 clusters_voronoi$downscaling_id <- exact_extract(id_raster, clusters_voronoi, "majority")
 
 aa <- clusters_voronoi

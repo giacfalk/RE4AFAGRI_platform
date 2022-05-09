@@ -11,9 +11,12 @@ national_official_population_without_access = national_official_population- (nat
 ppp_gdp_capita <- 3457.6
 gini <- 57.1
 
-zambia_electr_final_demand_tot_ <- 947 * 11630000  #ktoe to kWh, https://wedocs.unep.org/bitstream/handle/20.500.11822/20590/Energy_profile_Zambia.pdf?sequence=1&isAllowed=y
+zambia_electr_final_demand_tot <- 947 * 11630000  #ktoe to kWh, https://wedocs.unep.org/bitstream/handle/20.500.11822/20590/Energy_profile_Zambia.pdf?sequence=1&isAllowed=y
+
 zambia_industry_final_demand_tot <- 344 * 11630000 
 
+zambia_industry_final_demand_resid <- zambia_electr_final_demand_tot - zambia_industry_final_demand_tot
+  
 urban_hh_size <- 3.5
 rural_hh_size <- 4.5
 

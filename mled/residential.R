@@ -1,3 +1,4 @@
+###
 # Calculate the number of people in each tier in each cluster
 clusters$popdens <- clusters$population / clusters$area
 
@@ -73,12 +74,27 @@ clusters[complete.cases(newdata), "predicted_tier"] <- predict(model, newdata=ne
 ####################################à
 
 # Calculate number of households in each cluster
+clusters$HHs = ifelse(clusters$isurban>0, clusters$population/urban_hh_size, clusters$population/rural_hh_size)
+
+# If ely access > 0, consumption of electrified x% grows with gdp_capita growth, mediated byelasticity linked to tiers
+
+clusters$PerHHD_ely <- clusters$current_consumption_kWh / (clusters$HHs * clusters$elrate)
+clusters$PerHHD_ely <- ifelse(is.na(clusters$PerHHD_ely) | is.infinite(clusters$PerHHD_ely), 0, clusters$PerHHD_ely)
+
+clusters$elasticity <- ifelse(clusters$tier==1, 0.69, ifelse(clusters$tier==2, 0.637, ifelse(clusters$tier==3, 0.41, ifelse(clusters$tier==4, 0.32, 1))))
+
+clusters$PerHHD_ely <-  clusters$PerHHD_ely * clusters$elasticity* ((clusters$gdp_capita_2050 - clusters$gdp_capita_2020) / clusters$gdp_capita_2020)
+
+clusters$PerHHD_ely_tt <- clusters$PerHHD_ely * clusters$HHs
+
+# if ely access == 0 AND the consumption of unelectrified x%, consumption determined by tiers
+
 clusters$HHs = ifelse(clusters$isurban_future>0, clusters$population_future/urban_hh_size, clusters$population_future/rural_hh_size)
 
-clusters$acc_pop_t1_new =  clusters$HHs * as.numeric(clusters$predicted_tier==0) + clusters$HHs * as.numeric(clusters$predicted_tier==1)
-clusters$acc_pop_t2_new =  clusters$HHs * as.numeric(clusters$predicted_tier==2)
-clusters$acc_pop_t3_new =  clusters$HHs * as.numeric(clusters$predicted_tier==3)
-clusters$acc_pop_t4_new =  clusters$HHs * as.numeric(clusters$predicted_tier==4)
+clusters$acc_pop_t1_new =  clusters$HHs * as.numeric(clusters$predicted_tier==0) + clusters$HHs * as.numeric(clusters$predicted_tier==1) * (1 - clusters$elrate)
+clusters$acc_pop_t2_new =  clusters$HHs * as.numeric(clusters$predicted_tier==2) * (1 - clusters$elrate)
+clusters$acc_pop_t3_new =  clusters$HHs * as.numeric(clusters$predicted_tier==3) * (1 - clusters$elrate)
+clusters$acc_pop_t4_new =  clusters$HHs * as.numeric(clusters$predicted_tier==4) * (1 - clusters$elrate)
 
 for (m in 1:12){
   for (i in 1:24){
@@ -109,7 +125,11 @@ aa$geometry=NULL
 aa$geom=NULL
 
 out = aa %>% dplyr::select(starts_with("PerHHD_tt_monthly_")) %>% rowSums(.)
+
 clusters$PerHHD_tt = out
+
+clusters$PerHHD_tt <- clusters$PerHHD_tt + clusters$PerHHD_ely_tt
+
 clusters$PerHHD_tt_avg <- clusters$PerHHD_tt / clusters$HHs
 
 if (output_hourly_resolution==F){

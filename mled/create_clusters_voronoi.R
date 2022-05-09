@@ -29,6 +29,7 @@ st_voronoi_point <- function(points){
 clusters_voronoi = st_voronoi_point(p)
 clusters_voronoi = st_set_geometry(p, clusters_voronoi)
 clusters_voronoi <- st_intersection(clusters_voronoi, gadm0)
+st_crs(clusters_voronoi) <- 4326
 
 write_sf(clusters_voronoi, paste0(input_country_specific, "clusters_voronoi.gpkg"))
 

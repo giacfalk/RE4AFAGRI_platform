@@ -28,7 +28,7 @@ GHSSMOD2015 <- ee_as_raster(
 
 if (paste0("builtup_lit_", countryiso3, ".tif") %in% all_input_files_basename){
   
-  GHSSMOD2015 <- raster(find_it(paste0("builtup_lit_", countryiso3, ".tif")))
+  GHSSMOD2015_lit <- raster(find_it(paste0("builtup_lit_", countryiso3, ".tif")))
   
 } else {
   
@@ -44,37 +44,47 @@ GHSSMOD2015_lit <- ee_as_raster(
 }
 
 clusters$elrate <-  exact_extract(GHSSMOD2015_lit, clusters, fun="sum") / exact_extract(GHSSMOD2015, clusters, fun="sum")
+clusters$elrate <- ifelse(is.na(clusters$elrate), 0, clusters$elrate)
 
 ######
 
 # Spread current consumption
 
-total <- zambia_electr_final_demand_tot_
+if (paste0("ely_cons_1_km_", countrystudy, ".tif") %in% all_input_files_basename){
+  
+  res_rf <- raster(find_it(paste0("ely_cons_1_km_", countrystudy, ".tif")))
+
+  clusters$current_consumption_kWh <- exact_extract(res_rf, clusters, "sum")
+  clusters$current_consumption_kWh <- ifelse(is.na(clusters$current_consumption_kWh ), 0, clusters$current_consumption_kWh)
+
+} else {
+  
+
+total <- zambia_electr_final_demand_tot
 weights <- rep(1/6, 6)
 
 pop <- raster(find_it("GHS_POP_E2015_GLOBE_R2019A_4326_30ss_V1_0.tif"))
 pop <- crop(pop, extent(gadm0))
-pop <- fast_mask(pop, gadm0)
+pop <- mask_raster_to_polygon(pop, gadm0)
 values(pop) <- ifelse(is.na(values(pop)), 0, values(pop))
-pop <- fast_mask(pop, gadm0)
 
 listone <- read.csv(find_it(paste0(countryiso3, "_relative_wealth_index.csv")))
 listone$iso3c <- listone$.id
 listone$.id = NULL
 data <- st_as_sf(as.data.frame(listone), coords=c("longitude", "latitude"), crs=4326) %>% st_transform(3395) %>% st_buffer(2400) %>% st_transform(4326)
 rwi <- rasterize(data, pop, field = data$rwi, fun = max, na.rm = TRUE) # or mean
-rwi <- fast_mask(rwi, gadm0)
+rwi <- mask_raster_to_polygon(rwi, gadm0)
 rwi <- rwi + abs(min(values(rwi), na.rm=T))
 
 el_access <- GHSSMOD2015_lit
 el_access <- crop(el_access, extent(gadm0))
 values(el_access) <- ifelse(is.na(values(el_access)), 0, 1)
-el_access <- fast_mask(el_access, gadm0)
+el_access <- mask_raster_to_polygon(el_access, gadm0)
 el_access <- projectRaster(el_access, pop, method="ngb")
 
 image1 <- raster(find_it('travel.tif'))
 image1 <- crop(image1, extent(gadm0))
-image1 <- fast_mask(image1, gadm0)
+image1 <- mask_raster_to_polygon(image1, gadm0)
 tt <-projectRaster(image1, pop, method="ngb")
 tt <- -tt 
 tt <- tt - min(values(tt), na.rm=T)
@@ -94,13 +104,13 @@ prio <- st_transform(prio, 3395) %>% st_buffer(1000) %>% st_transform(4326)
 
 resources <- fasterize::fasterize(prio, pop, field="resources", fun="first")
 resources <- resources>0
-resources <- fast_mask(resources, gadm0)
+resources <- mask_raster_to_polygon(resources, gadm0)
 
 # resources (PRIO)
 resources <- raster::distance(projectRaster(resources, crs="+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
 resources <- projectRaster(resources, crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs 
 ")
-resources <- fast_mask(resources/1000, gadm0)
+resources <- mask_raster_to_polygon(resources/1000, gadm0)
 resources <- -resources 
 resources <- resources - min(values(resources), na.rm=T)
 
@@ -169,8 +179,8 @@ begin_disserve <- function(total, covs, weights){
 
 output <- begin_disserve(total, covs, weights)
 
-min_iter <- 3 # Minimum number of iterations
-max_iter <- 10 # Maximum number of iterations
+min_iter <- 2 # Minimum number of iterations
+max_iter <- 5 # Maximum number of iterations
 p_train <- 0.25 # Subsampling of the initial data
 
 res_rf <- dissever(
@@ -240,6 +250,11 @@ res_rf_w <- ens/sum(values(ens), na.rm=T)
 
 res_rf <- res_rf_w * total
 
+writeRaster(res_rf, paste0(processed_folder, "ely_cons_1_km_", countrystudy, ".tif"), overwrite=T)
+
 ####
 
 clusters$current_consumption_kWh <- exact_extract(res_rf, clusters, "sum")
+clusters$current_consumption_kWh <- ifelse(is.na(clusters$current_consumption_kWh ), 0, clusters$current_consumption_kWh)
+
+}

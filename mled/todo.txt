@@ -1,13 +1,16 @@
- ## 1st half of May timeline (by 20th)
- 
+ ## 1st half of May timeline by 15 th 
+
+- Fix cropland downscaling
 - Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there)
-- Electricity access + consumption module -> valuta far crescere i consumi dove già ci sono oggi
+
+ ## 1st half of May timeline (by 20th)
+
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
 - Send to beta testers
 
 #####
 
-# 2nd half of May - first half of June
+# First half of June
 - What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
 - Enable output_hourly_resolution option in all scripts
 

@@ -1,10 +1,5 @@
 clusters_buffers_cropland_distance <- fasterize(clusters_buffers_cropland_distance, field_size)
 
-if (buffers_cropland_distance==F){
-  
-  values(clusters_buffers_cropland_distance) <- 1
-}
-
 rainfed <- gsub("_2", "_1", rainfed) # to cope with current february bug!
 rainfed2 <- mixedsort(rainfed)
 rainfed2 <- pblapply(rainfed2, raster)
@@ -13,7 +8,9 @@ for (i in 1:length(rainfed2)){
   crs(rainfed2[[i]]) <- as.character(CRS("+init=epsg:4236"))
 }
 
-if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(rainfed2[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); rainfed2 <- pblapply(rainfed2, function(X){mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi)))}); for (i in 1:length(rainfed2)){crs(rainfed2[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,rainfed2[[1]]); rainfed2 <- pblapply(rainfed2, function(X){mask(X, field_size)}); rainfed2 <- pblapply(rainfed2, function(X){mask(X, clusters_buffers_cropland_distance)})}
+if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_to_polygon(rainfed2[[1]], st_as_sfc(st_bbox(clusters_voronoi))), method = "bilinear") ; m <- field_size; m[m > 29] <- NA; field_size <- mask(field_size, m); rainfed2 <- pblapply(rainfed2, function(X){return(mask_raster_to_polygon(X, st_as_sfc(st_bbox(clusters_voronoi))))}); for (i in 1:length(rainfed2)){crs(rainfed2[[i]]) <- crs(field_size)}; field_size <- projectRaster(field_size,rainfed2[[1]]); rainfed2 <- pblapply(rainfed2, function(X){mask(X, field_size)})}
+
+if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRaster(clusters_buffers_cropland_distance,rainfed2[[1]], method = "ngb"); rainfed2 <- pblapply(rainfed2, function(X){mask(X, clusters_buffers_cropland_distance)})}
 
 rainfed2 <- split(rainfed2,  unlist(qdapRegex::ex_between(rainfed, "irrigation/", "/I_")))
 
