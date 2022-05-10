@@ -1,11 +1,11 @@
  ## 1st half of May timeline by 15 th 
 
-- Fix cropland downscaling
 - Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there)
 
  ## 1st half of May timeline (by 20th)
 
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
+- Rerun uploader script
 - Send to beta testers
 
 #####

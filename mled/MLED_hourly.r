@@ -11,9 +11,9 @@ db_folder = 'F:/MLED_database' # path where to download the M-LED database
 
 email<- "giacomo.falchetta@gmail.com" # NB; previously enabled to use Google Earth Engine via https://signup.earthengine.google.com
 
-download_data <- F # flag: download the M-LED database? F if you already have done so previously.
+download_data <- T # flag: download the M-LED database? F if you already have done so previously.
 
-downscale_cropland <- T # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)?
+downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)?
 
 ######################
 # country and year

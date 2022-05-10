@@ -11,18 +11,15 @@
 # #
 # sizes <- data.frame(all_input_files, sizes)
 
-all_input_files <- all_input_files[-grep("\\.ini$|\\.docx$|\\.png$|\\.r$|\\.mat$|r_tmp_|results|\\.pyc$|\\.pdf$|\\.rds$|\\.rdata$|\\.dbf$|\\.xml$", all_input_files,ignore.case=TRUE)] 
-
-
 all_input_files_stub <- gsub("F:/MLED_database/", "", all_input_files)
 all_input_files_stub <- gsub("//", "/", all_input_files_stub)
 
+#
+
 setwd("F:/MLED_database/")
 
-sapply(file.path("H:/Il mio Drive/MLED_database", dirname(all_input_files_stub)), 
-       dir.create, recursive = TRUE, showWarnings = FALSE)
-
-#
+# sapply(file.path("H:/Il mio Drive/MLED_database", dirname(all_input_files_stub)), 
+#        dir.create, recursive = TRUE, showWarnings = FALSE)
 
 googledrive::drive_auth()
 

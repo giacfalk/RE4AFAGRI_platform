@@ -37,13 +37,13 @@ stub[i] <- paste0("https://deafrica-services.s3.af-south-1.amazonaws.com/crop_ma
 
 grid <- grid[!(basename(stub) %in% all_input_files_basename),]
 
-dir.create(file.path(getwd(), "hrs_cropland"), showWarnings = FALSE)
+dir.create(file.path(input_folder, "hrs_cropland"), showWarnings = FALSE)
 oldw <- getOption("warn")
 options(warn = -1)
 
 for (i in as.numeric(rownames(grid))){
 print(i)
-  tryCatch(download.file(stub[i], destfile = paste0("hrs_cropland/", basename(stub)[i]), mode="wb"), 
+  tryCatch(download.file(stub[i], destfile = paste0(input_folder, "hrs_cropland/", basename(stub)[i]), mode="wb"), 
            error = function(e) print('Skipped'))    
 }
 
@@ -57,7 +57,7 @@ cropland <- list()
 
 for (i in 1:length(r)){
   print(i)
-  cropland[[i]] <- exact_extract(raster(paste0("hrs_cropland/", r[i]))==1, clusters_voronoi, "sum")
+  cropland[[i]] <- exact_extract(raster(paste0(input_folder, "hrs_cropland/", r[i]))==1, clusters_voronoi, "sum")
   
 }
 
