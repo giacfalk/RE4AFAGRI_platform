@@ -26,7 +26,7 @@ planning_horizon = planning_year - today
 discount_rate = 0.15 
 
 # if cluster population is smaller than parameter value, then do not allow for productive demand
-pop_threshold_productive_loads <- 15
+pop_threshold_productive_loads <- 50
 
 # Maximum distance of cropland to include load in community load (radius buffer in meters from cluster centroid)
 m_radius_buffer_cropland_distance <- 5000
@@ -170,7 +170,7 @@ rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = 
 # Country-specific data
 #####################
 
-clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(1000)
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
 clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters_centroids <- st_centroid(clusters)
@@ -196,23 +196,23 @@ ext = extent(gadm0)
 population_baseline <- raster(find_it("ZMB_population_v1_0_gridded.tif"))
 
 # gridded gdp_baseline (current)
-gdp_baseline <- stack(find_it("gdp_ssp2soc_10km_2010-2100.nc"))[[2]]
+gdp_baseline <- stack(find_it(paste0("gdp_", scenarios$ssp[scenario], "soc_10km_2010-2100.nc")))[[2]]
 gdp_baseline <- mask_raster_to_polygon(gdp_baseline, gadm0)
 
 # urbanisation
-urban_baseline <- list.files(path=paste0(input_folder, "UrbanFraction_1km_GEOTIFF_Projections_SSPs1-5_2010-2100_v1"), recursive = T, pattern=scenario, full.names = T)
+urban_baseline <- list.files(path=paste0(input_folder, "UrbanFraction_1km_GEOTIFF_Projections_SSPs1-5_2010-2100_v1"), recursive = T, pattern=scenarios$ssp[scenario], full.names = T)
 
 urban_baseline <- stack(lapply(urban_baseline, raster))
 urban_baseline <- urban_baseline[[2]]
 
 # current and future cropping patterns
-cropping_baseline = ncdf4::nc_open(find_it(paste0(rcp, 'soc_miroc5_landuse-15crops_annual_2006_2099.nc')))
+cropping_baseline = ncdf4::nc_open(find_it(paste0(scenarios$rcp[scenario], 'soc_miroc5_landuse-15crops_annual_2006_2099.nc')))
 variables = names(cropping_baseline[['var']])[c(2:23)]
 ncdf4::nc_close(cropping_baseline)
-cropping_baseline =  lapply(variables, function(X){stack(find_it(paste0(rcp, "soc_miroc5_landuse-15crops_annual_2006_2099.nc")), varname=X)[[15]]})
+cropping_baseline =  lapply(variables, function(X){stack(find_it(paste0(scenarios$rcp[scenario], "soc_miroc5_landuse-15crops_annual_2006_2099.nc")), varname=X)[[15]]})
 
 # groundwater recharge (baseline)
-qr_baseline <- stack(find_it(paste0("lpjml_gfdl-esm2m_ewembi_", rcp, "_", rcp, "soc_co2_qr_global_monthly_2006_2099.nc4")))
+qr_baseline <- stack(find_it(paste0("lpjml_gfdl-esm2m_ewembi_", scenarios$rcp[scenario], "_", scenarios$rcp[scenario], "soc_co2_qr_global_monthly_2006_2099.nc4")))
 
 # wealth / GDP per capita
 

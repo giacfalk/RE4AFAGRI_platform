@@ -52,7 +52,7 @@ clusters_productive$geometry=NULL
 clusters_productive$PerHHD_tt = NULL
 clusters_productive$PerHHD_tt_avg = NULL
 
-clusters_productive = dplyr::select(clusters_productive, 290:301)
+clusters_productive = dplyr::select(clusters_productive, contains("monthly"))
 
 clusters_productive = PCs$PCav * clusters_productive
 

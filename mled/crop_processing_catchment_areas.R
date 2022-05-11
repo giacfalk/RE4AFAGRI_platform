@@ -70,3 +70,6 @@ clusters_traveltime_processing_i <- filter(clusters, clusters_traveltime_process
 
 clusters$suitable_for_local_processing <- ifelse(clusters$id %in% clusters_traveltime_processing_i$id, 1, 0)
 
+rm(clusters_traveltime_processing)
+
+save.image(paste0("results/", countrystudy, "/clusters_crop_processing_ca.Rdata"))

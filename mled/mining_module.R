@@ -26,6 +26,8 @@ clusters_mining_r <- fasterize(clusters_mining, population_baseline, "mining_kwh
 
 clusters$mining_kwh_tt <- exact_extract(clusters_mining_r, clusters, "mean")
 
+rm(clusters_mining_r)
+
 clusters$mining_kwh_tt <- ifelse(is.na(clusters$mining_kwh_tt), 0, clusters$mining_kwh_tt)
 
 clusters$mining_kwh_tt <- clusters$mining_kwh_tt * (zambia_industry_final_demand_tot / sum(clusters$mining_kwh_tt , na.rm=T))

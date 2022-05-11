@@ -55,7 +55,7 @@ rainfed <- rainfed_sum
 
 for (i in 1:12){
   
-  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum")
+  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * irrigated_cropland_share_target
 }
 
 # downscale irrigation / cropland demand

@@ -48,7 +48,7 @@ clusters$elrate <- ifelse(is.na(clusters$elrate), 0, clusters$elrate)
 
 ######
 
-# Spread current consumption
+# Spread current (residential) consumption
 
 if (paste0("ely_cons_1_km_", countrystudy, ".tif") %in% all_input_files_basename){
   

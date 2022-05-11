@@ -5,7 +5,7 @@ clusters$popdens <- clusters$population / clusters$area
 #plot_raster_tiers <- rasterVis::levelplot(ratify(raster_tiers))
 
 #values(raster_tiers) <- ifelse(values(raster_tiers)==0, NA, values(raster_tiers))
-clusters$tier <- exact_extract(raster_tiers, clusters, "majority")
+clusters$tier <- exact_extract(raster_tiers, clusters, "max")
 
 #
 
@@ -64,12 +64,14 @@ clusters$popdens_future <- clusters$population_future / clusters$area
 
 #############
 
-newdata <- clusters %>% dplyr::select(gdp_capita_2050, popdens_future, isurban_future) %>% mutate(isurban_future=as.factor(isurban_future)) %>%  as.data.frame() 
+newdata <- clusters %>% dplyr::select(paste0("gdp_capita_", planning_year), popdens_future, isurban_future) %>% mutate(isurban_future=as.factor(isurban_future)) %>%  as.data.frame() 
 newdata$geometry <- NULL
 newdata$geom <- NULL
 colnames(newdata) <- c("gdp_capita_2020", "popdens", "isurban")
 
 clusters[complete.cases(newdata), "predicted_tier"] <- predict(model, newdata=newdata[complete.cases(newdata),]) 
+
+rm(newdata, model, train_data, test_data, clusters_rf, weights, w)
 
 ####################################à
 
@@ -83,7 +85,14 @@ clusters$PerHHD_ely <- ifelse(is.na(clusters$PerHHD_ely) | is.infinite(clusters$
 
 clusters$elasticity <- ifelse(clusters$tier==1, 0.69, ifelse(clusters$tier==2, 0.637, ifelse(clusters$tier==3, 0.41, ifelse(clusters$tier==4, 0.32, 1))))
 
-clusters$PerHHD_ely <-  clusters$PerHHD_ely * clusters$elasticity* ((clusters$gdp_capita_2050 - clusters$gdp_capita_2020) / clusters$gdp_capita_2020)
+aa <- clusters
+aa$geom=NULL
+aa$geometry=NULL
+
+clusters$PerHHD_ely <- ifelse(clusters$PerHHD_ely>10000, 10000, clusters$PerHHD_ely)
+clusters$PerHHD_ely <- ifelse(is.na(clusters$PerHHD_ely), 0, clusters$PerHHD_ely)
+
+clusters$PerHHD_ely <-  clusters$PerHHD_ely * clusters$elasticity* ((pull(aa[paste0("gdp_capita_", planning_year)]) - clusters$gdp_capita_2020) / clusters$gdp_capita_2020)
 
 clusters$PerHHD_ely_tt <- clusters$PerHHD_ely * clusters$HHs
 
@@ -91,10 +100,10 @@ clusters$PerHHD_ely_tt <- clusters$PerHHD_ely * clusters$HHs
 
 clusters$HHs = ifelse(clusters$isurban_future>0, clusters$population_future/urban_hh_size, clusters$population_future/rural_hh_size)
 
-clusters$acc_pop_t1_new =  clusters$HHs * as.numeric(clusters$predicted_tier==0) + clusters$HHs * as.numeric(clusters$predicted_tier==1) * (1 - clusters$elrate)
-clusters$acc_pop_t2_new =  clusters$HHs * as.numeric(clusters$predicted_tier==2) * (1 - clusters$elrate)
-clusters$acc_pop_t3_new =  clusters$HHs * as.numeric(clusters$predicted_tier==3) * (1 - clusters$elrate)
-clusters$acc_pop_t4_new =  clusters$HHs * as.numeric(clusters$predicted_tier==4) * (1 - clusters$elrate)
+clusters$acc_pop_t1_new =  clusters$HHs * as.numeric(clusters$predicted_tier==0) + clusters$HHs * as.numeric(clusters$predicted_tier==1) * (el_access_share_target - clusters$elrate)
+clusters$acc_pop_t2_new =  clusters$HHs * as.numeric(clusters$predicted_tier==2) * (el_access_share_target - clusters$elrate)
+clusters$acc_pop_t3_new =  clusters$HHs * as.numeric(clusters$predicted_tier==3) * (el_access_share_target - clusters$elrate)
+clusters$acc_pop_t4_new =  clusters$HHs * as.numeric(clusters$predicted_tier==4) * (el_access_share_target - clusters$elrate)
 
 for (m in 1:12){
   for (i in 1:24){
@@ -136,9 +145,13 @@ if (output_hourly_resolution==F){
   
   ### remove the hourly fields
   
+  clusters <- dplyr::select(clusters, -colnames(clusters)[grepl("PerHHD", colnames(clusters)) & !grepl("tt", colnames(clusters))])
+  
  }
 
 
 clusters <- st_as_sf(clusters)
+
+rm(aa)
 
 save.image(paste0("results/", countrystudy, "/clusters_residential.Rdata"))

@@ -1,6 +1,6 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
 # v1.1 (LEAP_RE)
-# 09/05/2022
+# 11/05/2022
 
 ####
 # system parameters
@@ -11,7 +11,7 @@ db_folder = 'F:/MLED_database' # path where to download the M-LED database
 
 email<- "giacomo.falchetta@gmail.com" # NB; previously enabled to use Google Earth Engine via https://signup.earthengine.google.com
 
-download_data <- T # flag: download the M-LED database? F if you already have done so previously.
+download_data <- F # flag: download the M-LED database? F if you already have done so previously.
 
 downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)?
 
@@ -21,21 +21,26 @@ downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resol
 countrystudy <- "zambia" # country to run M-LED on
 exclude_countries <- paste("rwanda", "nigeria", "zimbabwe", sep="|") # countries in the database files to exclude from the current run
 
-planning_year = 2050 # horizon year to make projections
+planning_year = 2030 # horizon year to make projections
 
 ######################
 # scenarios
 
-ssp <- scenario <- c("ssp2") # list SSP scenarios to run
-rcp <- c("rcp26") # list RCP scenarios to run
-scenarios <- expand.grid(ssp = ssp, rcp = rcp)
+el_access_share_target <- 1 # target share of population with electricity in the planning year
+irrigated_cropland_share_target <- 1  # target share of irrigation water demand met in the planning year
+crop_processed_share_target <-  1  #target share of crop yield locally processed in the planning year
+    
+ssp <- c("ssp2") # list SSP scenarios to run
+rcp <- c("rcp45") # list RCP scenarios to run
+
+scenarios <- expand.grid(planning_year=planning_year, ssp = ssp, rcp = rcp, el_access_share_target=el_access_share_target, irrigated_cropland_share_target=irrigated_cropland_share_target, crop_processed_share_target=crop_processed_share_target, stringsAsFactors = F)
   
 ######################
 # options and constriants 
 
 output_hourly_resolution <- F  # produce hourly load curves for each month. if false, produce just monthly and yearly totals
 
-only_residential_demand_in_small_clusters <- T
+no_productive_demand_in_small_clusters <- T
 
 groundwater_sustainability_contraint <- T # impose limit on groundwater pumping based on monthly recharge
 
@@ -43,7 +48,7 @@ buffers_cropland_distance <- T # do not include agricultural loads from cropland
 
 field_size_contraint <- T # consider only small farmland patches (smallholder farming)
 
-process_already_irrigated_crops <- T # crop processing: include energy demand to process yield in already irrigated land
+process_already_irrigated_crops <- F # crop processing: include energy demand to process yield in already irrigated land
 
 water_tank_storage <- T # water storage is possible
 
@@ -57,7 +62,7 @@ instalments_business_model <- T # upfront lump sum spread over lifetime for sola
 timestamp()
 source("backend.R")
 
-for (scenario in scenarios){
+for (scenario in 1:nrow(scenarios)){
   
 # Load the country and scenario-specific data
 timestamp()
@@ -119,13 +124,15 @@ demand_fields <- c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt
 
 clusters_onsset <- dplyr::select(clusters, id, starts_with("pop"), contains("isurban"), starts_with("gdp"), all_of(demand_fields))
 
-colnames(clusters_onsset) <- c("residential", "smes", "healthcare", "schools", "irrigation", "crop_processing", "mining", "geometry")
+colnames(clusters_onsset)[match(tail(colnames(clusters_onsset), 8), colnames(clusters_onsset))] <- c("residential", "smes", "healthcare", "schools", "irrigation", "crop_processing", "mining", "geometry")
 
-clusters_onsset <- na.omit(clusters_onsset)
+clusters_onsset[is.na(clusters_onsset)] <- 0
 
-write_sf(clusters_onsset, paste0("results/", countrystudy, "/onsset_clusters_with_mled_loads_", scenario, ".gpkg"))
+write_sf(clusters_onsset, paste0("results/", countrystudy, "/onsset_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
 
-write_sf(clusters_voronoi, paste0("results/", countrystudy, "/onsset_clusters_voronoi.gpkg"))
+write_sf(clusters_voronoi %>% dplyr::select(id), paste0("results/", countrystudy, "/onsset_clusters_voronoi.gpkg"))
+
+############
 
 id <- fasterize(clusters_nest, rainfed[[1]], "OBJECTID")
 
@@ -135,7 +142,7 @@ clusters_onsset <- group_by(clusters_onsset, OBJECTID) %>% summarise_all(., sum,
 
 clusters_nest <- merge(clusters_nest, clusters_onsset, "OBJECTID")
 
-write_sf(clusters_nest, paste0("results/", countrystudy, "/nest_clusters_with_mled_loads_", scenario, ".gpkg"))
+write_sf(clusters_nest, paste0("results/", countrystudy, "/nest_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
 
 
 #
@@ -150,7 +157,7 @@ clusters_onsset <- group_by(clusters_onsset, id) %>% summarise_all(., sum, na.rm
 
 gadm2 <- merge(gadm2, clusters_onsset, "id")
 
-write_sf(gadm2, paste0("results/", countrystudy, "/gadm2_with_mled_loads_", scenario, ".gpkg"))
+write_sf(gadm2, paste0("results/", countrystudy, "/gadm2_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
 
 #################
 # Welfare analysis
