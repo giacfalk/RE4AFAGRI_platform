@@ -21,7 +21,9 @@ downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resol
 countrystudy <- "zambia" # country to run M-LED on
 exclude_countries <- paste("rwanda", "nigeria", "zimbabwe", sep="|") # countries in the database files to exclude from the current run
 
-planning_year = 2030 # horizon year to make projections
+planning_year <- 2050
+
+planning_year = seq(2020, planning_year, 10) # time steps and horizon year to make projections
 
 ######################
 # scenarios
@@ -31,7 +33,7 @@ irrigated_cropland_share_target <- 1  # target share of irrigation water demand 
 crop_processed_share_target <-  1  #target share of crop yield locally processed in the planning year
     
 ssp <- c("ssp2") # list SSP scenarios to run
-rcp <- c("rcp45") # list RCP scenarios to run
+rcp <- c("rcp26") # list RCP scenarios to run
 
 scenarios <- expand.grid(planning_year=planning_year, ssp = ssp, rcp = rcp, el_access_share_target=el_access_share_target, irrigated_cropland_share_target=irrigated_cropland_share_target, crop_processed_share_target=crop_processed_share_target, stringsAsFactors = F)
   
@@ -58,17 +60,21 @@ instalments_business_model <- T # upfront lump sum spread over lifetime for sola
 
 ######################
 # run the analysis
- 
+
+scenario <- 1
+
 timestamp()
 source("backend.R")
 
 for (scenario in 1:nrow(scenarios)){
-  
+
+print(paste("Running ", paste(scenarios[scenario,], collapse = "_")))
+    
 # Load the country and scenario-specific data
 timestamp()
 source(paste0("scenario_", countrystudy, ".R"))
 
-# Estimate electricity access levels and dowscale current consumption level at each cluster
+# Estimate electricity access levels and downscale current consumption level at each cluster
 timestamp()
 source("electricity_access.R")
 
@@ -111,11 +117,6 @@ source("other_productive.R")
 timestamp()
 source("cleaner.R")
 
-
-}
-
-#load(paste0("results/", countrystudy, "/clusters_other_productive.Rdata"))
-
 ####
 
 # Write output for soft-linking into OnSSET and NEST and for online visualisation
@@ -129,6 +130,8 @@ colnames(clusters_onsset)[match(tail(colnames(clusters_onsset), 8), colnames(clu
 clusters_onsset[is.na(clusters_onsset)] <- 0
 
 write_sf(clusters_onsset, paste0("results/", countrystudy, "/onsset_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
+
+}
 
 write_sf(clusters_voronoi %>% dplyr::select(id), paste0("results/", countrystudy, "/onsset_clusters_voronoi.gpkg"))
 

@@ -64,6 +64,8 @@ all_input_files <- all_input_files[-grep(exclude_countries, all_input_files,igno
 
 all_input_files <- all_input_files[-grep("\\.ini$|\\.docx$|\\.png$|\\.r$|\\.mat$|r_tmp_|results|\\.pyc$|\\.pdf$|\\.rds$|\\.rdata$|\\.dbf$|\\.xml$", all_input_files,ignore.case=TRUE)] 
 
+all_input_files <- gsub("//", "/", all_input_files)
+
 all_input_files_basename <- basename(all_input_files)
 
 user.input <- function(prompt) {

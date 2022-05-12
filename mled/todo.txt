@@ -1,12 +1,11 @@
- ## 1st half of May timeline by 15 th 
-
-- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there)
-
- ## 1st half of May timeline (by 20th)
-
+ ## By the end of may
+ 
+- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there) -> also that results for baseline year 2020 are produced correctly
+- Fix bug that monthly PerHHD only refers to newly electrified -> bug is carried over to other_productive
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
 - Rerun uploader script
 - Send to beta testers
+- Send outputs to Adriano
 
 #####
 

@@ -92,7 +92,7 @@ aa$geometry=NULL
 clusters$PerHHD_ely <- ifelse(clusters$PerHHD_ely>10000, 10000, clusters$PerHHD_ely)
 clusters$PerHHD_ely <- ifelse(is.na(clusters$PerHHD_ely), 0, clusters$PerHHD_ely)
 
-clusters$PerHHD_ely <-  clusters$PerHHD_ely * clusters$elasticity* ((pull(aa[paste0("gdp_capita_", planning_year)]) - clusters$gdp_capita_2020) / clusters$gdp_capita_2020)
+clusters$PerHHD_ely <-  clusters$PerHHD_ely * clusters$elasticity* (1 + ((pull(aa[paste0("gdp_capita_", planning_year)]) - clusters$gdp_capita_2020) / clusters$gdp_capita_2020))
 
 clusters$PerHHD_ely_tt <- clusters$PerHHD_ely * clusters$HHs
 
@@ -137,7 +137,9 @@ out = aa %>% dplyr::select(starts_with("PerHHD_tt_monthly_")) %>% rowSums(.)
 
 clusters$PerHHD_tt = out
 
-clusters$PerHHD_tt <- clusters$PerHHD_tt + clusters$PerHHD_ely_tt
+clusters$PerHHD_nely_tt <- clusters$PerHHD_tt
+
+clusters$PerHHD_tt <- clusters$PerHHD_nely_tt + clusters$PerHHD_ely_tt
 
 clusters$PerHHD_tt_avg <- clusters$PerHHD_tt / clusters$HHs
 

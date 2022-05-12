@@ -7,17 +7,20 @@
 # Extract yield 
 # Import all Yield (kg/ha) cropland layers (Default datasets used: MapSPAM)
 # NB: when using MapSPAM use harvested area, which accounts for multiple growing seasons per year)
-files = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_yield.geotiff") , pattern = 'r.tif')
-files <- files[grepl(paste(energy_crops[,1], collapse="|") , files)]
+files <- list.files(path=paste0(input_folder, "spam_folder/spam2017v2r1_ssa_yield.geotiff"), pattern="R.tif", full.names=T)
+files <- files[grepl(paste(energy_crops[,1], collapse="|") , files, ignore.case =T)]
 
-files2 = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'r.tif')
-files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2)]
+files2 = list.files(path = paste0(input_folder, "spam_folder/spam2017v2r1_ssa_harv_area.geotiff") , pattern = 'R.tif', full.names = T)
+files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2, ignore.case =T)]
 
 ## implement these constraints
 
-files <- lapply(files, function(X)(raster(find_it(X))))
-files2 <- lapply(files2, function(X)(raster(find_it(X))))
-
+files <- stack(lapply(files, function(X)(raster(X))))
+names(files) <- tolower(unlist(qdapRegex::ex_between(files, "SSA_Y_", "_R.tif")))
+  
+files2 <- stack(lapply(files2, function(X)(raster(X))))
+names(files2) <- tolower(unlist(qdapRegex::ex_between(files2, "SSA_H_", "_R.tif")))
+  
 field_size <- raster(find_it("field_size_10_40_cropland.img"))
 field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
 
@@ -36,8 +39,8 @@ if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRa
 ####
 
 for (X in 1:length(files)){
-  a = paste0("A_" , gsub("spam2010v1r0_global_harvested.area_", "", names(files2[[X]])))
-  clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="sum")
+  a = paste0("A_" , names(files)[X], "_r")
+  clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="sum") 
   
   aa <- clusters
   aa$geom=NULL
@@ -45,7 +48,7 @@ for (X in 1:length(files)){
   
   clusters[a] <- ifelse(is.na( pull(aa[a])), 0,  pull(aa[a]))
   
-  a = paste0("Y_" , gsub("spam2010v1r0_global_yield_", "", names(files[[X]])))
+  a = paste0("Y_" ,  names(files)[X], "_r")
   clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="mean")
   
   aa <- clusters
@@ -58,7 +61,7 @@ for (X in 1:length(files)){
   aa$geom=NULL
   aa$geometry=NULL
   
-  clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])))])*crop_processed_share_target)
+  clusters <- clusters %>%  mutate(!!paste0("yield_",  names(files)[X]), "_r_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_",  names(files)[X], "_r")]) * crop_processed_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year)))
 }
 
 ################
@@ -66,16 +69,19 @@ for (X in 1:length(files)){
 
 if (process_already_irrigated_crops==T){
   
-  files = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_yield.geotiff") , pattern = 'i.tif')
-  files <- files[grepl(paste(energy_crops[,1], collapse="|") , files)]
+  files <- list.files(path=paste0(input_folder, "spam_folder/spam2017v2r1_ssa_yield.geotiff"), pattern="I.tif", full.names=T)
+  files <- files[grepl(paste(energy_crops[,1], collapse="|") , files, ignore.case =T)]
   
-  files2 = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'i.tif')
-  files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2)]
+  files2 = list.files(path = paste0(input_folder, "spam_folder/spam2017v2r1_ssa_harv_area.geotiff") , pattern = 'I.tif', full.names = T)
+  files2 <- files2[grepl(paste(energy_crops[,1], collapse="|") , files2, ignore.case =T)]
   
   ## implement these constraints
   
-  files <- lapply(files, function(X)(raster(find_it(X))))
-  files2 <- lapply(files2, function(X)(raster(find_it(X))))
+  files <- stack(lapply(files, function(X)(raster(X))))
+  names(files) <- tolower(unlist(qdapRegex::ex_between(files, "SSA_Y_", "_I.tif")))
+  
+  files2 <- stack(lapply(files2, function(X)(raster(X))))
+  names(files2) <- tolower(unlist(qdapRegex::ex_between(files2, "SSA_H_", "_I.tif")))
   
   field_size <- raster(find_it("field_size_10_40_cropland.img"))
   field_size <- mask_raster_to_polygon(field_size, st_as_sfc(st_bbox(clusters)))
@@ -95,7 +101,7 @@ if (process_already_irrigated_crops==T){
   ####
   
   for (X in 1:length(files)){
-    a = paste0("A_" , gsub("spam2010v1r0_global_harvested.area_", "", names(files2[[X]])), "rr")
+    a = paste0("A_" , names(files)[X]), "_irr")
     clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="sum")
     
     aa <- clusters
@@ -104,7 +110,7 @@ if (process_already_irrigated_crops==T){
     
     clusters[a] <- ifelse(is.na( pull(aa[a])), 0,  pull(aa[a]))
     
-    a = paste0("Y_" , gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "rr")
+    a = paste0("Y_" , names(files)[X]), "_irr")
     clusters[a] <- exactextractr::exact_extract(files[[X]], clusters_voronoi, fun="mean")
     
     aa <- clusters
@@ -117,7 +123,7 @@ if (process_already_irrigated_crops==T){
     aa$geom=NULL
     aa$geometry=NULL
     
-    clusters <- clusters %>%  mutate(!!paste0("yield_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])),  "rr_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", gsub("spam2010v1r0_global_yield_", "", names(files[[X]])), "rr")]) * crop_processed_share_target) 
+    clusters <- clusters %>%  mutate(!!paste0("yield_", names(files)[X]),  "_irr_tot") := (!!as.name(a)) * pull(!!aa[paste0("A_", names(files)[X], "_irr")]) * crop_processed_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year))) 
   }
 }
 
@@ -129,13 +135,13 @@ for (X in as.vector(energy_crops[,1])){
   aa$geom=NULL
   aa$geometry=NULL
   
-  clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("yield_", X, "_r_tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X] 
+  clusters[paste0("kwh_" , X , "_r_tot")] = pull(aa[paste0("yield_", X, "_r_tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X] 
   
   aa <- clusters
   aa$geom=NULL
   aa$geometry=NULL
   
-  clusters[paste0("kwh_" , X , "_tot")] = ifelse(clusters$suitable_for_local_processing==1, pull(aa[paste0("kwh_" , X , "_tot")]), 0)
+  clusters[paste0("kwh_" , X , "_r_tot")] = ifelse(clusters$suitable_for_local_processing==1, pull(aa[paste0("kwh_" , X , "_r_tot")]), 0)
   
   aa <- clusters
   aa$geom=NULL
@@ -143,7 +149,7 @@ for (X in as.vector(energy_crops[,1])){
   
   if (process_already_irrigated_crops==T){
     
-    clusters[paste0("kwh_" , X , "rr_tot")] = pull(aa[paste0("kwh_" , X , "_tot")]) + pull(aa[paste0("yield_", X, "rr_tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X]
+    clusters[paste0("kwh_" , X , "_tot")] = pull(aa[paste0("kwh_" , X , "_r_tot")]) + pull(aa[paste0("yield_", X, "_irr_tot")]) * energy_crops$kw_kg._h[as.vector(energy_crops[,1]) == X]
     
     aa <- clusters
     aa$geom=NULL

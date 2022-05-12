@@ -31,3 +31,8 @@ rm(clusters_mining_r)
 clusters$mining_kwh_tt <- ifelse(is.na(clusters$mining_kwh_tt), 0, clusters$mining_kwh_tt)
 
 clusters$mining_kwh_tt <- clusters$mining_kwh_tt * (zambia_industry_final_demand_tot / sum(clusters$mining_kwh_tt , na.rm=T))
+
+clusters$mining_kwh_tt <-  clusters$mining_kwh_tt* (1 + ((pull(aa[paste0("gdp_capita_", planning_year)]) - clusters$gdp_capita_2020) / clusters$gdp_capita_2020))
+
+  
+

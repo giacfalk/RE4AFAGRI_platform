@@ -21,12 +21,12 @@ for (m in 1:12){
     aa$geom=NULL
     aa$geometry=NULL
     
-    clusters = mutate(clusters, !!paste0('er_hc_' , as.character(m) , "_" , as.character(i)) := pull(!!as.name(paste0('health1', "_" , as.character(m))))[i] * clusters$beds_1 + pull(!!as.name(paste0('health2', "_" , as.character(m))))[i] * clusters$beds_2 + pull(!!as.name(paste0('health3', "_" , as.character(m))))[i] * clusters$beds_3 + pull(!!as.name(paste0('health4', "_" , as.character(m))))[i] * clusters$beds_4)
+    clusters = mutate(clusters, !!paste0('er_hc_' , as.character(m) , "_" , as.character(i)) := (pull(!!as.name(paste0('health1', "_" , as.character(m))))[i] * clusters$beds_1 + pull(!!as.name(paste0('health2', "_" , as.character(m))))[i] * clusters$beds_2 + pull(!!as.name(paste0('health3', "_" , as.character(m))))[i] * clusters$beds_3 + pull(!!as.name(paste0('health4', "_" , as.character(m))))[i] * clusters$beds_4) * el_access_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year)))
     
     aa <- clusters
     aa$geom=NULL
 
-    clusters = mutate(clusters, !!paste0('er_sch_' , as.character(m) , "_" , as.character(i)) := pull(!!as.name(paste0('edu', "_" , as.character(m))))[i] / pupils_per_school * clusters$schools)
+    clusters = mutate(clusters, !!paste0('er_sch_' , as.character(m) , "_" , as.character(i)) := ( pull(!!as.name(paste0('edu', "_" , as.character(m))))[i] / pupils_per_school * clusters$schools) * el_access_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year)) )
     
     aa <- clusters
     aa$geom=NULL

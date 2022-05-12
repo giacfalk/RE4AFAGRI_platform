@@ -1,8 +1,11 @@
 clusters_buffers_cropland_distance <- fasterize(clusters_buffers_cropland_distance, field_size)
 
-rainfed <- gsub("_2", "_1", rainfed) # to cope with current february bug!
 rainfed2 <- mixedsort(rainfed)
 rainfed2 <- pblapply(rainfed2, raster)
+for (i in 1:length(rainfed2)){
+  crs(rainfed2[[i]]) <- as.character(CRS("+init=epsg:4236"))
+}
+
 
 for (i in 1:length(rainfed2)){
   crs(rainfed2[[i]]) <- as.character(CRS("+init=epsg:4236"))
@@ -12,9 +15,11 @@ if(field_size_contraint==T){field_size <- projectRaster(field_size, mask_raster_
 
 if(buffers_cropland_distance==T){clusters_buffers_cropland_distance <- projectRaster(clusters_buffers_cropland_distance,rainfed2[[1]], method = "ngb"); rainfed2 <- pblapply(rainfed2, function(X){mask(X, clusters_buffers_cropland_distance)})}
 
-rainfed2 <- split(rainfed2,  unlist(qdapRegex::ex_between(rainfed, "irrigation/", "/I_")))
+rainfed2 <- split(rainfed2,  tolower(unlist(qdapRegex::ex_between(rainfed, "giacomo/", "/cl"))))
 
 rainfed <- pblapply(rainfed2, stack)
+
+names(rainfed) <- c("barl", "cass", "coco", "cott", "grou", "maiz", "pmil", "smil", "oilp", "pota", "rape", "rice", "sorg", "soyb", "sugb", "sugc", "sunf", "whea", "yams")
 
 #
 
@@ -22,8 +27,8 @@ clusters_voronoi$area <- as.numeric(st_area(clusters_voronoi)) * 0.0001 # in hec
 
 # extract total bluewater demand in each cluster
 
-files = list.files(path = paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff") , pattern = 'r.tif', full.names = T)
-files_crops <- unlist(qdapRegex::ex_between(files, "-area_", "_r.tif"))
+files = list.files(path = paste0(input_folder, "spam_folder/spam2017v2r1_ssa_harv_area.geotiff") , pattern = 'R.tif', full.names = T)
+files_crops <- tolower(unlist(qdapRegex::ex_between(files, "SSA_H_", "_R.tif")))
 files_crops <- files_crops %in% names(rainfed)
 files <- files[files_crops]
 
@@ -55,7 +60,7 @@ rainfed <- rainfed_sum
 
 for (i in 1:12){
   
-  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * irrigated_cropland_share_target
+  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i))] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * irrigated_cropland_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year))
 }
 
 # downscale irrigation / cropland demand

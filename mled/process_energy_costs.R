@@ -12,12 +12,11 @@ crops$irr_type <- ifelse(crops$eta_irr==0.6, "flood", "drip")
 crops <- merge(df, crops, by.x=c("crop"), by.y=c("most_sim"))
 
 # prevalent crop in each grid cell
-files = list.files(path = paste0(input_folder, "spam_folder/", "spam2010v1r0_global_harv_area.geotiff") , pattern = 'r.tif', full.names = T)
-
-files <- files[as.character(substr(basename(files), 36, 39)) %in% crops$crop.y]
+files <- list.files(path=paste0(input_folder, "spam_folder/spam2017v2r1_ssa_yield.geotiff"), pattern="R.tif", full.names=T)
+files <- files[tolower(as.character(substr(basename(files), 20, 23))) %in% crops$crop.y]
 
 for (X in files){
-a = paste0("A_" , as.character(substr(basename(X), 36, 39)))
+a = paste0("A_" , tolower(as.character(substr(basename(X), 20, 23))))
 clusters[a] <- exactextractr::exact_extract(raster(X), clusters_voronoi, fun="sum")
 }
 

@@ -28,25 +28,28 @@ for(i in 3:ncol(prices)){
   prices[,i][is.na(prices[,i])] <- mean(pull(prices[,i]), na.rm = TRUE)
 }
 
-files <- list.files(paste0(input_folder, "20211122_yield_potential"), full.names = T, pattern = "variation.txt", recursive=T)
-nomi <- unlist(qdapRegex::ex_between(files, "yield_potential/", "/yield_percentage"))
+files <- list.files(paste0(input_folder, "watercrop"), full.names = T, pattern = "variation.txt", recursive=T)
+nomi <- unlist(qdapRegex::ex_between(files, "watercrop/", "/yield_percentage"))
 files <- pblapply(files, raster)
 files <- stack(files)
-names(files) <- nomi
+names(files) <-  c("barl", "cass", "coco", "cott", "grou", "maiz", "pmil", "smil", "oilp", "pota", "rape", "rice", "sorg", "soyb", "sugb", "sugc", "sunf", "whea", "yams")
+
+crs(files) <- as.character(CRS("+init=epsg:4236"))
 
 #
 
-files2 <- list.files(path=paste0(input_folder, "spam_folder/spam2010v1r0_global_yield.geotiff"), pattern="r.tif", full.names=T)
+files2 <- list.files(path=paste0(input_folder, "spam_folder/spam2017v2r1_ssa_yield.geotiff"), pattern="R.tif", full.names=T)
+nomi <- tolower(as.character(substr(basename(files2), 20, 23)))
 files2 <- pblapply(files2, raster)
 files2 <- stack(files2)
-names(files2) <- unlist(qdapRegex::ex_between(names(files2), "spam2010v1r0_global_yield_", "_r"))
+names(files2) <- nomi
 files2 <- subset(files2, names(files))
 
-
-files3 <- list.files(path=paste0(input_folder, "spam_folder/spam2010v1r0_global_harv_area.geotiff"), pattern="r.tif", full.names=T)
+files3 = list.files(path = paste0(input_folder, "spam_folder/spam2017v2r1_ssa_harv_area.geotiff") , pattern = 'R.tif', full.names = T)
+nomi <- tolower(as.character(substr(basename(files3), 20, 23)))
 files3 <- pblapply(files3, raster)
 files3 <- stack(files3)
-names(files3) <- unlist(qdapRegex::ex_between(names(files3), "spam2010v1r0_global_harvested.area_", "_r"))
+names(files3) <- nomi
 files3 <- subset(files3, names(files))
 
 for (i in 1:nlayers(files)){

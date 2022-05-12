@@ -18,8 +18,8 @@ all_input_files_stub <- gsub("//", "/", all_input_files_stub)
 
 setwd("F:/MLED_database/")
 
-# sapply(file.path("H:/Il mio Drive/MLED_database", dirname(all_input_files_stub)), 
-#        dir.create, recursive = TRUE, showWarnings = FALSE)
+sapply(file.path("H:/Il mio Drive/MLED_database", dirname(all_input_files_stub)),
+       dir.create, recursive = TRUE, showWarnings = FALSE)
 
 googledrive::drive_auth()
 

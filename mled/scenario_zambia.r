@@ -164,13 +164,13 @@ fatsg_yearly_need <- 60 * 365
 # Irrigation needs (source: soft-link from WaterCROP)
 #####################
 
-rainfed <- list.files(paste0(input_folder, "20211122_irrigation"), full.names = T, pattern = "rainfed", recursive=T)
+rainfed <- list.files(paste0(input_folder, "watercrop"), full.names = T, pattern = "closure", recursive=T)
 
 #####################
 # Country-specific data
 #####################
 
-clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(100)
 clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters_centroids <- st_centroid(clusters)
