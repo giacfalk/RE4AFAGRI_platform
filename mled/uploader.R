@@ -26,15 +26,18 @@ googledrive::drive_auth()
 out <- list()
 
 for (i in 1:length(all_input_files_stub)){
-  print(i)
-out[[i]] <- drive_upload(media = all_input_files_stub[i], path = paste0('~/MLED_database/',dirname(all_input_files_stub[i]), "/"), name=basename(all_input_files_stub[i]), overwrite = T)
+  while(TRUE){
+    
+    print(i)
+    
+    table <- try(drive_upload(media = all_input_files_stub[i], path = paste0('~/MLED_database/',dirname(all_input_files_stub[i]), "/"), name=basename(all_input_files_stub[i]), overwrite = T))
 
-if (is.null(out[[i]])){
+if(!is(table, 'try-error')) break
+  }
+  print(i)
+  out[[i]] <- table
   
-  out[[i]] <- drive_upload(media = all_input_files_stub[i], path = paste0('~/MLED_database/',dirname(all_input_files_stub[i]), "/"), name=basename(all_input_files_stub[i]), overwrite = T)
-  
-  
-}}
+}
 
 write_rds(out, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index.rds")
 write_rds(all_input_files_stub, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index_stubs.rds")
