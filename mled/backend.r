@@ -6,6 +6,7 @@ tmpDir(create=TRUE)
 
 if (!require("rgis")) remotes::install_github("JGCRI/rgis"); library(rgis)
 if (!require("fasterize")) remotes::install_github("ecohealthalliance/fasterize"); library(fasterize)
+if (!require("gdalUtils")) remotes::install_github("gearslaboratory/gdalUtils"); library(gdalUtils)
 
 mask_raster_to_polygon <- function (raster_object, polygon) 
 {
@@ -60,9 +61,9 @@ dir.create(file.path(input_country_specific), showWarnings = FALSE)
 
 all_input_files <- list.files(path=input_folder, recursive = T, full.names = T)
 
-all_input_files <- all_input_files[-grep(exclude_countries, all_input_files,ignore.case=TRUE)]
+all_input_files <- all_input_files[grep(exclude_countries, all_input_files,ignore.case=TRUE, invert = TRUE)]
 
-all_input_files <- all_input_files[-grep("\\.ini$|\\.docx$|\\.png$|\\.r$|\\.mat$|r_tmp_|results|\\.pyc$|\\.pdf$|\\.rds$|\\.rdata$|\\.dbf$|\\.xml$", all_input_files,ignore.case=TRUE)] 
+all_input_files <- all_input_files[grep("\\.ini$|\\.docx$|\\.png$|\\.r$|\\.mat$|r_tmp_|results|\\.pyc$|\\.pdf$|\\.rds$|\\.rdata$|\\.dbf$|\\.xml$", all_input_files,ignore.case=TRUE, invert = TRUE)] 
 
 all_input_files <- gsub("//", "/", all_input_files)
 

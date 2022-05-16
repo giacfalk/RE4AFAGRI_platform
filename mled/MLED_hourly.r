@@ -5,9 +5,9 @@
 ####
 # system parameters
 
-setwd("D:/OneDrive - IIASA/RE4AFAGRI_platform/mled") # path of the cloned M-LED repository
+setwd("C:/Users/falchetta/Documents/GitHub/mled") # path of the cloned M-LED repository
 
-db_folder = 'F:/MLED_database' # path where to download the M-LED database
+db_folder = 'H:/My Drive/MLED_database' # path where to download the M-LED database
 
 email<- "giacomo.falchetta@gmail.com" # NB; previously enabled to use Google Earth Engine via https://signup.earthengine.google.com
 

@@ -208,8 +208,8 @@ aa <- clusters
 aa$geometry=NULL
 aa$geom=NULL
 
-clusters[paste0('er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,grep("^er_kwh", colnames(aa)) & grep(timestep, colnames(aa))], na.rm = T))
-clusters[paste0('surface_er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,grep("^surface_er_kwh", colnames(aa)) & grep(timestep, colnames(aa))], na.rm = T))
+clusters[paste0('er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,base::intersect(grep("^er_kwh", colnames(aa)), grep(as.character(timestep), colnames(aa)))], na.rm = T))
+clusters[paste0('surface_er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,base::intersect(grep("^surface_er_kwh", colnames(aa)), grep(as.character(timestep), colnames(aa)))], na.rm = T))
 
 aa <- clusters
 aa$geometry=NULL
@@ -222,9 +222,11 @@ aa <- clusters
 aa$geometry=NULL
 aa$geom=NULL
 
-clusters[paste0('which_pumping', "_", timestep)] <- "Neither possible"
-clusters[paste0('which_pumping', "_", timestep)][pull(aa[paste0('er_kwh_tt', "_", timestep)])<pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])] <- "Ground water pumping"
-clusters[paste0('which_pumping', "_", timestep)][pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])<pull(aa[paste0('er_kwh_tt', "_", timestep)])] <- "Surface water pumping"
+aa[paste0('which_pumping', "_", timestep)] <- "Neither possible"
+aa[paste0('which_pumping', "_", timestep)][pull(aa[paste0('er_kwh_tt', "_", timestep)])<pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])] <- "Ground water pumping"
+aa[paste0('which_pumping', "_", timestep)][pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])<pull(aa[paste0('er_kwh_tt', "_", timestep)])] <- "Surface water pumping"
+
+clusters[paste0('which_pumping', "_", timestep)] <- aa[paste0('which_pumping', "_", timestep)] 
 
 for (i in 1:12){
   
