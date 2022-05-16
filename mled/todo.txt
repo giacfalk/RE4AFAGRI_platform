@@ -1,5 +1,6 @@
  ## By the end of may
- 
+
+- Make it multi time-step: not a piece of cake... (riprendere da load scenario_zambia.R)
 - Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there) -> also that results for baseline year 2020 are produced correctly
 - Fix bug that monthly PerHHD only refers to newly electrified -> bug is carried over to other_productive
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
