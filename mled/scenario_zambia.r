@@ -22,7 +22,7 @@ rural_hh_size <- 4.5
 
 # Planning horizon parameters
 today = 2022
-planning_horizon = planning_year - today
+planning_horizon = last(planning_year) - today
 discount_rate = 0.15 
 
 # if cluster population is smaller than parameter value, then do not allow for productive demand

@@ -72,4 +72,4 @@ clusters$suitable_for_local_processing <- ifelse(clusters$id %in% clusters_trave
 
 rm(clusters_traveltime_processing)
 
-save.image(paste0("results/", countrystudy, "/clusters_crop_processing_ca.Rdata"))
+save.image(paste0(processed_folder, "clusters_crop_processing_ca.Rdata"))

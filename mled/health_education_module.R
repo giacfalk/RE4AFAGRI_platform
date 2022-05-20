@@ -14,6 +14,9 @@ clusters$beds_4 <- clusters$beds_4 * beds_tier4
 
 clusters$schools <- lengths(st_intersects(clusters_voronoi, primaryschools)) * pupils_per_school
 
+for (timestep in planning_year){
+  
+
 for (m in 1:12){
   for (i in 1:24){
     
@@ -21,12 +24,12 @@ for (m in 1:12){
     aa$geom=NULL
     aa$geometry=NULL
     
-    clusters = mutate(clusters, !!paste0('er_hc_' , as.character(m) , "_" , as.character(i)) := (pull(!!as.name(paste0('health1', "_" , as.character(m))))[i] * clusters$beds_1 + pull(!!as.name(paste0('health2', "_" , as.character(m))))[i] * clusters$beds_2 + pull(!!as.name(paste0('health3', "_" , as.character(m))))[i] * clusters$beds_3 + pull(!!as.name(paste0('health4', "_" , as.character(m))))[i] * clusters$beds_4) * el_access_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year)))
+    clusters = mutate(clusters, !!paste0('er_hc_' , as.character(m) , "_" , as.character(i)) := (pull(!!as.name(paste0('health1', "_" , as.character(m))))[i] * clusters$beds_1 + pull(!!as.name(paste0('health2', "_" , as.character(m))))[i] * clusters$beds_2 + pull(!!as.name(paste0('health3', "_" , as.character(m))))[i] * clusters$beds_3 + pull(!!as.name(paste0('health4', "_" , as.character(m))))[i] * clusters$beds_4) * el_access_share_target * (match(timestep, planning_year) / length(planning_year))) 
     
     aa <- clusters
     aa$geom=NULL
 
-    clusters = mutate(clusters, !!paste0('er_sch_' , as.character(m) , "_" , as.character(i)) := ( pull(!!as.name(paste0('edu', "_" , as.character(m))))[i] / pupils_per_school * clusters$schools) * el_access_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year)) )
+    clusters = mutate(clusters, !!paste0('er_sch_' , as.character(m) , "_" , as.character(i)) := ( pull(!!as.name(paste0('edu', "_" , as.character(m))))[i] / pupils_per_school * clusters$schools) * el_access_share_target * (match(timestep, planning_year) / length(planning_year))) 
     
     aa <- clusters
     aa$geom=NULL
@@ -41,7 +44,7 @@ for (m in 1:12){
   aa$geometry=NULL
   
   out = aa %>% dplyr::select(starts_with(paste0("er_hc_", as.character(m), "_"))) %>% rowSums(.)
-  clusters[paste0('er_hc_tt' ,"_monthly_" , as.character(m))] = out
+  clusters[paste0('er_hc_tt' ,"_monthly_" , as.character(m), "_", timestep)] = out
   
 }
 
@@ -50,8 +53,8 @@ aa$geom=NULL
 aa$geometry=NULL
 
 # Generate variable for total daily demand and variables as shares of the daily demand
-out = aa %>% dplyr::select(starts_with("er_hc_tt_monthly_")) %>% rowSums(.)
-clusters$er_hc_tt = out
+out = aa %>% dplyr::select(starts_with("er_hc_tt_monthly_") & contains(as.character(timestep))) %>% rowSums(.)
+clusters[paste0('er_hc_tt_', timestep)] = as.numeric(out)
 
 for (m in 1:12){
   
@@ -60,7 +63,7 @@ for (m in 1:12){
   aa$geometry=NULL
   
   out = aa %>% dplyr::select(starts_with(paste0("er_sch_", as.character(m), "_"))) %>% rowSums(.)
-  clusters[paste0('er_sch_tt' ,"_monthly_" , as.character(m))] = out
+  clusters[paste0('er_sch_tt' ,"_monthly_" , as.character(m), "_", timestep)] = out
   
 }
 
@@ -69,8 +72,12 @@ aa <- clusters
 aa$geom=NULL
 aa$geometry=NULL
 
-out = aa %>% dplyr::select(starts_with("er_sch_tt_monthly_")) %>% rowSums(.)
-clusters$er_sch_tt = out
+out = aa %>% dplyr::select(starts_with("er_sch_tt_monthly_") & contains(as.character(timestep))) %>% rowSums(.)
+clusters[paste0('er_sch_tt_', timestep)] = out
+
+}
+
+
 
 if (output_hourly_resolution==F){
   
@@ -79,4 +86,4 @@ if (output_hourly_resolution==F){
 }
 
 
-save.image(paste0("results/", countrystudy, "/clusters_healthedu.Rdata"))
+save.image(paste0(processed_folder, "clusters_healthedu.Rdata"))

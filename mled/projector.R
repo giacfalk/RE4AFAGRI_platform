@@ -123,10 +123,3 @@ for (year in seq(planning_year[2], last(planning_year), 10)){
   clusters[paste0("isurban_future_", year)] <-  ifelse(clusters$isurban==1, 1, pull(aa[paste0("isurban_future_", year)]))
   
 }
-
-######################################
-# future groundwater recharge
-
-s_future <- stack(find_it(paste0("lpjml_gfdl-esm2m_ewembi_", scenarios$rcp[scenario]
-, "_", scenarios$rcp[scenario], "soc_co2_qr_global_monthly_2006_2099.nc4")))
-

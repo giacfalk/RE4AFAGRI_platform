@@ -39,3 +39,4 @@ for (timestep in planning_year){
 
 }
 
+save.image(paste0(processed_folder, "clusters_mining_module.Rdata"))

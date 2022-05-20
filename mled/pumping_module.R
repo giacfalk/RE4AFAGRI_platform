@@ -223,8 +223,8 @@ aa$geometry=NULL
 aa$geom=NULL
 
 aa[paste0('which_pumping', "_", timestep)] <- "Neither possible"
-aa[paste0('which_pumping', "_", timestep)][pull(aa[paste0('er_kwh_tt', "_", timestep)])<pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])] <- "Ground water pumping"
-aa[paste0('which_pumping', "_", timestep)][pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])<pull(aa[paste0('er_kwh_tt', "_", timestep)])] <- "Surface water pumping"
+aa[,paste0('which_pumping', "_", timestep)][pull(aa[paste0('er_kwh_tt', "_", timestep)])<pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])] <- "Ground water pumping"
+aa[,paste0('which_pumping', "_", timestep)][pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])<pull(aa[paste0('er_kwh_tt', "_", timestep)])] <- "Surface water pumping"
 
 clusters[paste0('which_pumping', "_", timestep)] <- aa[paste0('which_pumping', "_", timestep)] 
 
@@ -242,7 +242,14 @@ aa <- clusters
 aa$geometry=NULL
 aa$geom=NULL
 
+clusters[paste0("er_kwh_tt_", timestep)] = ifelse(aa[paste0('which_pumping', "_", timestep)]=="Ground water pumping", pull(aa[paste0("er_kwh_tt_", timestep)]), ifelse(aa[paste0('which_pumping', "_", timestep)]=="Surface water pumping", pull(aa[paste0("surface_er_kwh_tt_", timestep)]), NA))
+
+aa <- clusters
+aa$geometry=NULL
+aa$geom=NULL
+
 clusters[paste0('powerforpump', "_", timestep)] <- ifelse(pull(aa[paste0('which_pumping', "_", timestep)])=="Ground water pumping", clusters$powerforpump, ifelse(pull(aa[paste0('which_pumping', "_", timestep)])=="Surface water pumping", clusters$surfw_w, NA))
+
 
 # sum(clusters$powerforpump * clusters$npumps, na.rm=T)/1e3 # MW
 # sum(clusters$er_kwh_tt * clusters$npumps, na.rm=T)/1e9 # TWh
@@ -267,4 +274,4 @@ for (k in 1:12){
 
 }
 
-save.image(paste0("results/", countrystudy, "/clusters_pumping_module.Rdata"))
+save.image(paste0(processed_folder, "clusters_pumping_module.Rdata"))

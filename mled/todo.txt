@@ -1,19 +1,16 @@
  ## By the end of may
 
-- Crop model: dynamic groundwater recharge constraint
-- Make it multi time-step: not a piece of cake... (riprendere da load scenario_zambia.R)
-- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there) -> also that results for baseline year 2020 are produced correctly
-- Fix bug that monthly PerHHD only refers to newly electrified -> bug is carried over to other_productive
-- Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
-- Rerun uploader script
-- Send to beta testers
+- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there) -> also that results for all time steps look reasonable
 - Send outputs to Adriano
+- Enable output_hourly_resolution option in all scripts
+- Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
+- Send to beta testers
 
 #####
 
 # First half of June
 - What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
-- Enable output_hourly_resolution option in all scripts
+- Downscaling cropland -> mmmmh
 
 ##
 
