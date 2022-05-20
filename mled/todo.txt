@@ -1,6 +1,5 @@
  ## By the end of may
 
-- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there) -> also that results for all time steps look reasonable
 - Send outputs to Adriano
 - Enable output_hourly_resolution option in all scripts
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)

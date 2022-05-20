@@ -15,7 +15,7 @@ zambia_electr_final_demand_tot <- 947 * 11630000  #ktoe to kWh, https://wedocs.u
 
 zambia_industry_final_demand_tot <- 344 * 11630000 
 
-zambia_industry_final_demand_resid <- zambia_electr_final_demand_tot - zambia_industry_final_demand_tot
+zambia_final_demand_resid <- zambia_electr_final_demand_tot - zambia_industry_final_demand_tot
   
 urban_hh_size <- 3.5
 rural_hh_size <- 4.5
@@ -171,7 +171,7 @@ rainfed <- list.files(paste0(input_folder, "watercrop"), full.names = T, pattern
 #####################
 
 clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
-clusters <- filter(clusters, pop_start_worldpop>100)
+clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters_centroids <- st_centroid(clusters)
 clusters_buffers_cropland_distance <- st_transform(clusters_centroids, 3395) %>% st_buffer(m_radius_buffer_cropland_distance) %>% st_transform(4326)

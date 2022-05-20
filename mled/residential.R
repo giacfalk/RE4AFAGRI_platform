@@ -15,6 +15,7 @@ clusters_rf <- dplyr::select(clusters, tier, gdp_capita_2020, popdens, isurban)
 clusters_rf <- na.omit(clusters_rf)
 
 clusters_rf$tier <- as.factor(clusters_rf$tier)
+clusters_rf$isurban[1:3000] <- 0
 clusters_rf$isurban <- as.factor(clusters_rf$isurban)
 
 clusters_rf$geometry <- NULL

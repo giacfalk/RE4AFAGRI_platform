@@ -5,15 +5,17 @@
 ####
 # system parameters
 
-setwd("C:/Users/falchetta/Documents/GitHub/mled") # path of the cloned M-LED repository
+setwd("C:/Users/falchetta/Documents/GitHub/mled") # path of the cloned M-LED GitHub repository
 
-db_folder = 'H:/My Drive/MLED_database' # path where to download the M-LED database
+db_folder = 'H:/My Drive/MLED_database' # path to (or where to download) the M-LED database
 
-email<- "giacomo.falchetta@gmail.com" # NB; previously enabled to use Google Earth Engine via https://signup.earthengine.google.com
+email<- "giacomo.falchetta@gmail.com" # NB: need to have previously enabled it to use Google Earth Engine via https://signup.earthengine.google.com
 
-download_data <- F # flag: download the M-LED database? F if you already have done so previously.
+#
 
-downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)?
+download_data <- F # flag: download the M-LED database? Type "F" if you already have done so previously.
+
+downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)? Improves accuracy but slows running time
 
 ######################
 # country and year
@@ -26,12 +28,12 @@ planning_year = seq(2020, 2050, 10) # time steps and horizon year to make projec
 ######################
 # scenarios
 
-el_access_share_target <- 1 # target share of population with electricity in the planning year
-irrigated_cropland_share_target <- 1  # target share of irrigation water demand met in the planning year
-crop_processed_share_target <-  1  #target share of crop yield locally processed in the planning year
+el_access_share_target <- 1 # target share of population with electricity in the last planning year
+irrigated_cropland_share_target <- 1  # target share of irrigation water demand met in the last planning year
+crop_processed_share_target <-  1  #target share of crop yield locally processed in the last planning year
     
-ssp <- c("ssp2") # list SSP scenarios to run
-rcp <- c("rcp26") # list RCP scenarios to run
+ssp <- c("ssp2") # list SSP scenarios (socio-economic development) to run
+rcp <- c("rcp26") # list RCP scenarios (climate change) to run
 
 scenarios <- expand.grid(planning_year=planning_year, ssp = ssp, rcp = rcp, el_access_share_target=el_access_share_target, irrigated_cropland_share_target=irrigated_cropland_share_target, crop_processed_share_target=crop_processed_share_target, stringsAsFactors = F)
   

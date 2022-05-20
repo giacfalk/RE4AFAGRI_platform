@@ -60,7 +60,7 @@ if (paste0("ely_cons_1_km_", countrystudy, ".tif") %in% all_input_files_basename
 } else {
   
 
-total <- zambia_electr_final_demand_tot
+total <- zambia_final_demand_resid
 weights <- rep(1/6, 6)
 
 pop <- raster(find_it("GHS_POP_E2015_GLOBE_R2019A_4326_30ss_V1_0.tif"))
@@ -256,5 +256,9 @@ writeRaster(res_rf, paste0(processed_folder, "ely_cons_1_km_", countrystudy, ".t
 
 clusters$current_consumption_kWh <- exact_extract(res_rf, clusters, "sum")
 clusters$current_consumption_kWh <- ifelse(is.na(clusters$current_consumption_kWh ), 0, clusters$current_consumption_kWh)
+
+# readjust
+adj <- sum(clusters$current_consumption_kWh, na.rm=T) / zambia_final_demand_resid
+clusters$current_consumption_kWh <- clusters$current_consumption_kWh / adj
 
 }

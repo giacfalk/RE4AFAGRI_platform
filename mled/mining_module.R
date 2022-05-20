@@ -39,4 +39,6 @@ for (timestep in planning_year){
 
 }
 
+clusters$mining_kwh_tt  <- NULL
+
 save.image(paste0(processed_folder, "clusters_mining_module.Rdata"))

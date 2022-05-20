@@ -51,7 +51,7 @@ img_02 <- raster(paste0(input_folder, "groundwater_distance.tif"))
 
 #
 # # Calculate the mean distance from each cluster to the nearest source of surface water
-clusters$surfw_dist <-  exact_extract(img_02, clusters, fun="mean")
+clusters$surfw_dist <-  exact_extract(img_02, clusters, fun="min")
 clusters$slope <-  exact_extract(img_01, clusters, fun="mean")
 
 # Groundwater depth
@@ -182,9 +182,9 @@ for (i in 1:12){
   
   v = (pull(aa[paste0("q", as.character(i))]) / aa$npumps) / (3600 * pi * (pipe_diameter/2)^2)
   
-  delta_p_psi <- ((0.025 * v^2 * pull(aa["surfw_dist"])) / (2 * pipe_diameter)) * 0.145
+  delta_p_psi <- ((0.1 * v^2 * pull(aa["surfw_dist"]) * 1000 * 1) / (2 * pipe_diameter)) * 1e6
   
-  clusters[paste0("surfw_w", as.character(i))] = ifelse((clusters$npumps>0 & is.finite(clusters$surfw_dist)), ((delta_p_psi * (pull(aa[paste0("q", as.character(i))]) / aa$npumps) / 0.22) / (1717*eta_pump*eta_motor)) * 0.746, 0)
+  clusters[paste0("surfw_w", as.character(i))] = ifelse((clusters$npumps>0 & is.finite(clusters$surfw_dist)), ((delta_p_psi * (pull(aa[paste0("q", as.character(i))]) / aa$npumps)) / (3.6*10^6) / eta_pump/eta_motor), 0)
   
   aa <- clusters
   aa$geometry=NULL
@@ -250,9 +250,14 @@ aa$geom=NULL
 
 clusters[paste0('powerforpump', "_", timestep)] <- ifelse(pull(aa[paste0('which_pumping', "_", timestep)])=="Ground water pumping", clusters$powerforpump, ifelse(pull(aa[paste0('which_pumping', "_", timestep)])=="Surface water pumping", clusters$surfw_w, NA))
 
+aa <- clusters
+aa$geometry=NULL
+aa$geom=NULL
 
-# sum(clusters$powerforpump * clusters$npumps, na.rm=T)/1e3 # MW
-# sum(clusters$er_kwh_tt * clusters$npumps, na.rm=T)/1e9 # TWh
+aa[,paste0('which_pumping', "_", timestep)][pull(aa[paste0('gr_wat_depth')])<=3.5] <- "Surface water pumping"
+clusters[paste0('which_pumping', "_", timestep)] <- aa[paste0('which_pumping', "_", timestep)] 
+
+############
 
 # # simulate daily profile
 
