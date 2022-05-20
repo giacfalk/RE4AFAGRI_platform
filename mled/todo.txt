@@ -1,5 +1,6 @@
  ## By the end of may
 
+- Check totals and fix potential issues...
 - Send outputs to Adriano
 - Enable output_hourly_resolution option in all scripts
 - Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)

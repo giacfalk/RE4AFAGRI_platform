@@ -28,9 +28,9 @@ planning_year = seq(2020, 2050, 10) # time steps and horizon year to make projec
 ######################
 # scenarios
 
-el_access_share_target <- 1 # target share of population with electricity in the last planning year
-irrigated_cropland_share_target <- 1  # target share of irrigation water demand met in the last planning year
-crop_processed_share_target <-  1  #target share of crop yield locally processed in the last planning year
+el_access_share_target <- .75 # target share of population with electricity in the last planning year
+irrigated_cropland_share_target <- .5  # target share of irrigation water demand met in the last planning year
+crop_processed_share_target <-  .5  #target share of crop yield locally processed in the last planning year
     
 ssp <- c("ssp2") # list SSP scenarios (socio-economic development) to run
 rcp <- c("rcp26") # list RCP scenarios (climate change) to run
@@ -121,32 +121,33 @@ source("cleaner.R")
 
 # Write output for soft-linking into OnSSET and NEST and for online visualisation
 
-demand_fields <- c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt", "mining_kwh_tt")
+demand_fields <- apply(expand.grid(c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt", "mining_kwh_tt"), as.character(planning_year)), 1, paste, collapse="_")
 
 clusters_onsset <- dplyr::select(clusters, id, starts_with("pop"), contains("isurban"), starts_with("gdp"), all_of(demand_fields))
 
-colnames(clusters_onsset)[match(tail(colnames(clusters_onsset), 8), colnames(clusters_onsset))] <- c("residential", "smes", "healthcare", "schools", "irrigation", "crop_processing", "mining", "geometry")
-
 clusters_onsset[is.na(clusters_onsset)] <- 0
 
-write_sf(clusters_onsset, paste0("results/", countrystudy, "/onsset_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
+write_sf(clusters_onsset, paste0("results/", countrystudy, "_onsset_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"), overwrite=T)
 
 }
 
-write_sf(clusters_voronoi %>% dplyr::select(id), paste0("results/", countrystudy, "/onsset_clusters_voronoi.gpkg"))
+write_sf(clusters_voronoi %>% dplyr::select(id), paste0("results/", countrystudy, "_onsset_clusters_voronoi.gpkg"))
 
 ############
 
-id <- fasterize(clusters_nest, rainfed[[1]], "OBJECTID")
+clusters_nest$id <- 1:nrow(clusters_nest)
+id <- fasterize(clusters_nest, rainfed[[1]], "id")
 
-clusters_onsset$OBJECTID <- exact_extract(id, clusters_onsset, "majority")
+clusters_onsset$id <- exact_extract(id, clusters_onsset, "majority")
 clusters_onsset$geom <- NULL
-clusters_onsset <- group_by(clusters_onsset, OBJECTID) %>% summarise_all(., sum, na.rm=T)
+clusters_onsset$geometry <- NULL
+clusters_onsset <- dplyr::select(clusters_onsset, id, all_of(demand_fields))
 
-clusters_nest <- merge(clusters_nest, clusters_onsset, "OBJECTID")
+clusters_onsset <- group_by(clusters_onsset, id) %>% summarise_all(., sum, na.rm=T)
 
-write_sf(clusters_nest, paste0("results/", countrystudy, "/nest_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
+clusters_nest <- merge(clusters_nest, clusters_onsset, "id")
 
+write_sf(clusters_nest, paste0("results/", countrystudy, "_nest_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
 
 #
 
@@ -156,11 +157,19 @@ id <- fasterize(gadm2, diesel_price, "id")
 clusters_onsset <- dplyr::select(clusters, all_of(demand_fields))
 clusters_onsset$id <- exact_extract(id, clusters_onsset, "majority")
 clusters_onsset$geom <- NULL
+clusters_onsset$geometry <- NULL
+
 clusters_onsset <- group_by(clusters_onsset, id) %>% summarise_all(., sum, na.rm=T)
 
 gadm2 <- merge(gadm2, clusters_onsset, "id")
 
-write_sf(gadm2, paste0("results/", countrystudy, "/gadm2_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
+write_sf(gadm2, paste0("results/", countrystudy, "_gadm2_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
+
+
+###########################
+# Modules below are still under development!
+
+
 
 #################
 # Welfare analysis
