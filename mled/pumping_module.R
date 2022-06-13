@@ -1,6 +1,8 @@
-# Script to estimate, given monthly irrigation needs:
-#1) Power of pump (W) given flow of pump (m3/s), or flow of pump given a fixed power of pump
-#2) KWh/month required
+
+## This R-script:
+##      1) estimates pumps power and needs to pump irrigation water from groundwater aquifer or surface water body at each time step
+##      2) assesses whether water needs can be met given local water sources availability and constraints defined in the scenario file at each time step
+##      3) prioritises least energy-intensive pumping water source
 
 #############
 

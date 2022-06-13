@@ -1,3 +1,8 @@
+
+## This R-script:
+##      1) downscales baseline/current national mining energy demand to clusters through GIS mining sites database and nighttime light data
+##      2) projects future mining demandat each time step based on local GDP growth rate
+
 # extract nighttime lights above mining sites
 
 replacement = ee$Image(0)

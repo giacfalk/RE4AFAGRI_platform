@@ -1,3 +1,9 @@
+
+## This R-script:
+##      1) estimates electricity access in each cluster in the spirit of Falchetta et al. (2019) Scientific Data's paper, using built-up area and nighttime lights
+##      2) downscales national electricity consumption statistics to each cluster using the dissever methodology (see Roudier et al. 2017 Computers and Electronics in Agriculture paper)
+
+
 geom <- ee$Geometry$Rectangle(c(as.vector(extent(gadm0))[1], as.vector(extent(gadm0))[3], as.vector(extent(gadm0))[2], as.vector(extent(gadm0))[4]))
 
 GHSSMOD2015 = ee$Image("JRC/GHSL/P2016/BUILT_LDSMT_GLOBE_V1")$select('built')
@@ -56,11 +62,15 @@ if (paste0("ely_cons_1_km_", countrystudy, ".tif") %in% all_input_files_basename
 
   clusters$current_consumption_kWh <- exact_extract(res_rf, clusters, "sum")
   clusters$current_consumption_kWh <- ifelse(is.na(clusters$current_consumption_kWh ), 0, clusters$current_consumption_kWh)
+  
+  # readjust
+  adj <- sum(clusters$current_consumption_kWh, na.rm=T) / zambia_residential_final_demand_tot
+  clusters$current_consumption_kWh <- clusters$current_consumption_kWh / adj
 
 } else {
   
 
-total <- zambia_final_demand_resid
+total <- zambia_residential_final_demand_tot
 weights <- rep(1/6, 6)
 
 pop <- raster(find_it("GHS_POP_E2015_GLOBE_R2019A_4326_30ss_V1_0.tif"))
@@ -258,7 +268,7 @@ clusters$current_consumption_kWh <- exact_extract(res_rf, clusters, "sum")
 clusters$current_consumption_kWh <- ifelse(is.na(clusters$current_consumption_kWh ), 0, clusters$current_consumption_kWh)
 
 # readjust
-adj <- sum(clusters$current_consumption_kWh, na.rm=T) / zambia_final_demand_resid
+adj <- sum(clusters$current_consumption_kWh, na.rm=T) / zambia_residential_final_demand_tot
 clusters$current_consumption_kWh <- clusters$current_consumption_kWh / adj
 
 }

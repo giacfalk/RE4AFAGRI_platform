@@ -1,8 +1,8 @@
-# 1- per processare x% del raccolto (fai diversi scenari) in 10 ore di attiività delle macchine al giorno per x mesi, hai bisogno di un tot di kw totali (kw_kg_h) * kg * h
-# 2- assumi kw large-scale se è nei pressi della città, small scale se è remota, e calcola numero di macchine necessarie
-# 3- energia = kw * ore * macchine
 
-#Crop processing machinery: energy demand
+## This R-script:
+##      1) calculate monthly yield at each cluster for each crop
+##      2) estimates machinery (#, power) requirements at each crop-processing eligible cluster to carry out crop processing and cold storage at each time step and consistently with the share of crop yield to be processed specified in the main M-LED file. N.B. processing machinery considered are listed and can be customised in the "" file.
+##      3) calculates crop-specific and total electricity demand for crop processing at each time step
 
 # Extract yield 
 # Import all Yield (kg/ha) cropland layers (Default datasets used: MapSPAM)

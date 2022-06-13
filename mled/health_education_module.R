@@ -1,3 +1,9 @@
+
+## This R-script:
+##      1) estimates electricity demand from schools and healthcare facilities in each cluster to meet RAMP-generated appliance-based loads based on the predicted tier/size of each facility at each time step
+
+##
+
 # Estimate the yearly electric demand from healthcare and education facilities
 # define consumption of facility types (kWh/facility/year)
 clusters <- st_as_sf(clusters)

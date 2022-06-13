@@ -1,3 +1,8 @@
+
+## This R-script:
+##      1) calculates irrigation water needs at each cluster given the constaints imposed in the main M-LED file (e.g. smallholder farming only, or maximum distance to cluster threshold)
+##      2) calculates environmental flow constraints at each cluster to avoid aquifer groundwater unsustainable extraction
+
 clusters_buffers_cropland_distance <- fasterize(clusters_buffers_cropland_distance, field_size)
 
 rainfed2 <- mixedsort(rainfed)

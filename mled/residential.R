@@ -1,4 +1,14 @@
+
+## This R-script:
+##      1) assesses current and future predominant tier of electricity access at each cluster using data from Falchetta et al. (2019) Scientific Data's paper and a multinomial logistic regression model trained on current data (population density, urbanisation, GDP per capita) and used to make projections of future tiers based on future data
+##      2) project future residential demand at each time step
+##      2.1) for household who already have electricity access at the baseline period, it projects future demand based on per-capita GDP growth rate and income elasticities of electricity demand
+##      2.2) for household who are set to gain electricity access (based on the electricity access objective set in the main M-LED file), it assigns RAMP-generated appliance-based loads based on the predicted tier at each time step
+##      3) calculates total future residential electricity demand 
+
+
 ###
+
 # Calculate the number of people in each tier in each cluster
 clusters$popdens <- clusters$population / clusters$area
 
@@ -58,12 +68,12 @@ clusters$elasticity <- ifelse(clusters$tier==1, 0.69, ifelse(clusters$tier==2, 0
 clusters$PerHHD_ely <- clusters$current_consumption_kWh / (clusters$HHs * clusters$elrate)
 clusters$PerHHD_ely <- ifelse(is.na(clusters$PerHHD_ely) | is.infinite(clusters$PerHHD_ely), 0, clusters$PerHHD_ely)
 
-clusters$PerHHD_ely <- ifelse(clusters$PerHHD_ely>10000, 10000, clusters$PerHHD_ely)
+#clusters$PerHHD_ely <- ifelse(clusters$PerHHD_ely>10000, 10000, clusters$PerHHD_ely)
 clusters$PerHHD_ely <- ifelse(is.na(clusters$PerHHD_ely), 0, clusters$PerHHD_ely)
 
 clusters[paste0('PerHHD_ely_', first(planning_year))] <-  clusters$PerHHD_ely 
 
-clusters[paste0('PerHHD_tt_', first(planning_year))] <-  clusters$PerHHD_ely 
+clusters[paste0('PerHHD_tt_', first(planning_year))] <-  clusters$current_consumption_kWh
 
 clusters$PerHHD_ely  <- NULL
 
@@ -92,7 +102,7 @@ aa <- clusters
 aa$geom=NULL
 aa$geometry=NULL
 
-clusters[paste0('PerHHD_ely_tt' , "_", timestep)] <- pull(aa[paste0('PerHHD_ely' , "_", timestep)]) * clusters$HHs
+clusters[paste0('PerHHD_ely_tt' , "_", timestep)] <- pull(aa[paste0('PerHHD_ely' , "_", timestep)]) * clusters$HHs * clusters$elrate
 
 # if ely access == 0 AND the consumption of unelectrified x%, consumption determined by tiers
 

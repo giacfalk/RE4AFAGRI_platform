@@ -1,21 +1,9 @@
- ## By the end of may
-
-- Check totals and fix potential issues...
-- Send outputs to Adriano
-- Enable output_hourly_resolution option in all scripts
-- Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
-- Send to beta testers
-
 #####
 
-# First half of June
+# Mid june to November timeline
+- Enable output_hourly_resolution option in all scripts
 - What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
 - Downscaling cropland -> mmmmh
-
-##
-
-# Mid june to November timeline
-
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1 [ADE's work]
 - Check data inputs are the best possible (and consistent with other modules) -> Greg 12.3
 - Run scenarios for the future

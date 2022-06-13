@@ -1,3 +1,8 @@
+
+## This R-script:
+##      1) if the relative constraint is activated in the main M-LED script, it generates catchment areas within a given travel time (specified in the scenario file) around each city to constrain crop processing to those clusters which are sufficiently close to markets (i.e. cities)
+##      2) it generates a new variable identifying crop processing eligible clusters
+
 pop <- population_baseline # gridded population raster of reference
 
 all_facilities <- cities

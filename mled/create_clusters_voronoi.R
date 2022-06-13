@@ -1,4 +1,6 @@
-# generate voronoi clusters for cropland loads
+
+## This R-script:
+##      1) generates voronoi polygons for attaching agricultural land (and the related energy demand) to each population cluster
 
 if (length(grep("clusters_voronoi.gpkg", all_input_files_basename))>0){
   

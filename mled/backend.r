@@ -1,3 +1,9 @@
+
+## This R-script:
+##      1) automatically installs and/or loads the required package dependenices for running M-LED
+##      2) if required in the main M-LED script, it downloads the entire M-LED database
+##      3) it creates an index of all files in the M-LED database and a wrapper function to load them
+
 if (!require("pacman")) install.packages("pacman"); library(pacman)
 
 pacman::p_load(sf, raster, exactextractr, dplyr, readxl, cowplot, ggplot2, scales, tidyr, tidyverse, rgeos, gdalUtils, chron, nngeo, strex, rgee, data.table, gdata, FactoMineR, factoextra, maps  , mapdata, maptools, grid, randomForestSRC, countrycode, remotes, stars, gdistance, rgl, rasterVis, qlcMatrix, stars, tvm, gtools, wbstats, stars, patchwork, ggrepel, terra, pbapply, googledrive, nnet, caret, randomForest, beepr, ncdf4, s2, zip, sfsmisc, dissever, lsa, doBy, geojsonio)

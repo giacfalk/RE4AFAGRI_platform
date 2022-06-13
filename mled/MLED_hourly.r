@@ -1,6 +1,6 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
-# v1.1 (LEAP_RE)
-# 20/05/2022
+# v2 (LEAP_RE)
+# 13/06/2022
 
 ####
 # system parameters
@@ -13,7 +13,7 @@ email<- "giacomo.falchetta@gmail.com" # NB: need to have previously enabled it t
 
 #
 
-download_data <- F # flag: download the M-LED database? Type "F" if you already have done so previously.
+download_data <- T # flag: download the M-LED database? Type "F" if you already have done so previously.
 
 downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)? Improves accuracy but slows running time
 
@@ -40,11 +40,11 @@ scenarios <- expand.grid(planning_year=planning_year, ssp = ssp, rcp = rcp, el_a
 ######################
 # options and constriants 
 
-output_hourly_resolution <- F  # produce hourly load curves for each month. if false, produce just monthly and yearly totals
+output_hourly_resolution <- F  # produce hourly load curves for each month. if false, produce just monthly and yearly totals. ############ NB: bug-fixing in progress, please leave to F
 
 no_productive_demand_in_small_clusters <- T
 
-groundwater_sustainability_contraint <- T # impose limit on groundwater pumping based on monthly recharge
+groundwater_sustainability_contraint <- F # impose limit on groundwater pumping based on monthly recharge
 
 buffers_cropland_distance <- T # do not include agricultural loads from cropland distant more than n km (customisable in scenario file) from cluster centroid 
 
@@ -121,7 +121,7 @@ source("cleaner.R")
 
 # Write output for soft-linking into OnSSET and NEST and for online visualisation
 
-demand_fields <- apply(expand.grid(c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt", "mining_kwh_tt"), as.character(planning_year)), 1, paste, collapse="_")
+demand_fields <- apply(expand.grid(c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt", "mining_kwh_tt", "other_tt"), as.character(planning_year)), 1, paste, collapse="_")
 
 clusters_onsset <- dplyr::select(clusters, id, starts_with("pop"), contains("isurban"), starts_with("gdp"), all_of(demand_fields))
 
@@ -168,30 +168,26 @@ write_sf(gadm2, paste0("results/", countrystudy, "_gadm2_with_mled_loads_", past
 
 ###########################
 # Modules below are still under development!
+##########################
 
-
-
-#################
-# Welfare analysis
-
-# Estimate pumps installation costs
-timestamp()
-source("pumps_installation_costs.R")
-
-# Estimate cost of meeting demand with solar pumps
-timestamp()
-source("process_energy_costs.R")
-
-# Estimate revenues and carry out an economic analysis
-timestamp()
-source("estimate_economic_revenues.R")
-
-# Analyse the potential food security implications
-timestamp()
-source("food_security_implications.R")
-
-#################
-# Plotting and tables
-
-timestamp()
-source("generate_output_figures_tables.R")
+# # Estimate pumps installation costs
+# timestamp()
+# source("pumps_installation_costs.R")
+# 
+# # Estimate cost of meeting demand with solar pumps
+# timestamp()
+# source("process_energy_costs.R")
+# 
+# # Estimate revenues and carry out an economic analysis
+# timestamp()
+# source("estimate_economic_revenues.R")
+# 
+# # Analyse the potential food security implications
+# timestamp()
+# source("food_security_implications.R")
+# 
+# #################
+# # Plotting and tables
+# 
+# timestamp()
+# source("generate_output_figures_tables.R")

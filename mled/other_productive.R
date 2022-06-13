@@ -1,3 +1,8 @@
+
+## This R-script:
+##      1) calculates SMEs / non-farm micro enterprises electricity demand at each time step based on an adjustment factor of residential demand based on roads availability, market accessibility, and employment rates at each cluster
+
+
 # calculate paved road density in each cluster 
 clusters$roadslenght = exact_extract(roads, clusters, "mean")
 
