@@ -1,3 +1,11 @@
+
+## This R-script:
+##      1) defines country-specific and global M-LED parameters for the run
+##      2) imports and processes all input data, including the cluster (geographical unit of reference at which M-LED is run)
+##      3) projects future population, GDP, per-capita GDP, and urbanisation in each cluster
+##      4) saves an environment file "scenario_%countryname%.Rdata" which can be used to run the analysis
+
+
 #####################
 # Parameters
 #####################
@@ -11,18 +19,20 @@ national_official_population_without_access = national_official_population- (nat
 ppp_gdp_capita <- 3457.6
 gini <- 57.1
 
-zambia_electr_final_demand_tot <- 947 * 11630000  #ktoe to kWh, https://wedocs.unep.org/bitstream/handle/20.500.11822/20590/Energy_profile_Zambia.pdf?sequence=1&isAllowed=y
+zambia_electr_final_demand_tot <- 12913610000  #https://www.iea.org/countries/zambia
 
-zambia_industry_final_demand_tot <- 344 * 11630000 
+zambia_industry_final_demand_tot <- 7059722200
 
-zambia_industry_final_demand_resid <- zambia_electr_final_demand_tot - zambia_industry_final_demand_tot
-  
+zambia_residential_final_demand_tot <- 4022500000
+
+zambia_other_final_demand_tot <- zambia_electr_final_demand_tot - zambia_industry_final_demand_tot - zambia_residential_final_demand_tot
+
 urban_hh_size <- 3.5
 rural_hh_size <- 4.5
 
 # Planning horizon parameters
 today = 2022
-planning_horizon = planning_year - today
+planning_horizon = last(planning_year) - today
 discount_rate = 0.15 
 
 # if cluster population is smaller than parameter value, then do not allow for productive demand

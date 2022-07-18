@@ -1,23 +1,9 @@
- ## By the end of may
-
-- Make it multi time-step: not a piece of cake... (riprendere da load scenario_zambia.R)
-- Test MLED replication without errors on UNIVE PC (that all files, packages, functions are there) -> also that results for baseline year 2020 are produced correctly
-- Fix bug that monthly PerHHD only refers to newly electrified -> bug is carried over to other_productive
-- Clean code, variable names, etc. in all scripts (make it more human-readable and commented) and files in the database (names, folders structure etc.)
-- Rerun uploader script
-- Send to beta testers
-- Send outputs to Adriano
-
 #####
 
-# First half of June
-- What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
-- Enable output_hourly_resolution option in all scripts
-
-##
-
 # Mid june to November timeline
-
+- Enable output_hourly_resolution option in all scripts
+ - What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
+- Downscaling cropland -> mmmmh
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1 [ADE's work]
 - Check data inputs are the best possible (and consistent with other modules) -> Greg 12.3
 - Run scenarios for the future

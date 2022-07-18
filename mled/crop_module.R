@@ -1,3 +1,8 @@
+
+## This R-script:
+##      1) calculates irrigation water needs at each cluster given the constaints imposed in the main M-LED file (e.g. smallholder farming only, or maximum distance to cluster threshold)
+##      2) calculates environmental flow constraints at each cluster to avoid aquifer groundwater unsustainable extraction
+
 clusters_buffers_cropland_distance <- fasterize(clusters_buffers_cropland_distance, field_size)
 
 rainfed2 <- mixedsort(rainfed)
@@ -38,7 +43,7 @@ gc()
 
 # mm to m3 -> 1 mm supplies 0.001 m3 per m^2 of soil
 
-rainfed <- pblapply(1:length(files), function(X) {stack(rainfed[[X]] * (files[[X]] / crops_efficiency_irr$eta_irr[X]) * 10)})
+rainfed <- pblapply(1:nlayers(files), function(X) {stack(rainfed[[X]] * (files[[X]] / crops_efficiency_irr$eta_irr[X]) * 10)})
 
 # sum by month
 
@@ -46,25 +51,13 @@ rainfed_sum <- rainfed
 
 for (m in 1:12){
   
-  rainfed_sum[[m]] <- do.call("sum", c(pblapply(1:length(files), function(X){rainfed[[X]][[m]]}), na.rm = TRUE))
+  rainfed_sum[[m]] <- do.call("sum", c(pblapply(1:nlayers(files), function(X){rainfed[[X]][[m]]}), na.rm = TRUE))
   
 }
 
 rainfed_sum <- stack(rainfed_sum)
 rainfed <- rainfed_sum
 
-# Apply sustainability constraint for groundwater depletion
-
-qr_baseline <- qr_baseline[[c((nlayers(qr_baseline)-11):nlayers(qr_baseline))]] # for speed, consider only the latest year
-index <- rep(1:12, nlayers(qr_baseline)/12)
-qr_baseline <- stackApply(qr_baseline, index, fun = mean)
-
-qr_baseline <- qr_baseline * 60*60*24*30  #convert to mm per month
-
-for (i in 1:12){
-  
-  clusters_voronoi[paste0('monthly_GQ' , "_" , as.character(i))] <- exact_extract(qr_baseline[[i]], clusters_voronoi, "mean") * clusters_voronoi$area * 10
-}
 
 #########
 
@@ -72,8 +65,9 @@ for (timestep in planning_year){
 
 for (i in 1:12){
   
-  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * irrigated_cropland_share_target * (match(scenarios$planning_year[scenario], planning_year) / length(planning_year))
+  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * irrigated_cropland_share_target * (match(timestep, planning_year) / length(planning_year))
 }
+
 
 # downscale irrigation / cropland demand
 
@@ -91,23 +85,35 @@ if (downscale_cropland==T){
     
   }}
 
-
-
+  # Apply sustainability constraint for groundwater depletion
+  
+  index_qr <- ifelse(timestep==2020, 169, 169 + (timestep-2020-1)*12)
+  
+  qr_fut <- qr_baseline[[index_qr:(index_qr+11)]] # for speed, consider only the latest year
+  qr_fut <- qr_fut * 60*60*24*30  #convert to mm per month
+  
+  for (i in 1:12){
+    
+    clusters_voronoi[paste0('monthly_GQ' , "_" , as.character(i), "_", timestep)] <- exact_extract(qr_fut[[i]], clusters_voronoi, "mean") * clusters_voronoi$area * 10
+  }
+  
 if(groundwater_sustainability_contraint==T){
   
   for (i in 1:12){
     
     aa <- clusters_voronoi
     aa$geom=NULL
+    aa$geometry=NULL
     
-    clusters_voronoi[paste0('monthly_unmet_IRRIG_share' , "_" , as.character(i), "_", timestep)] <- as.numeric(ifelse((unlist(aa[paste0('monthly_GQ' , "_" , as.character(i))]) < unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)]))==TRUE, (unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)]) - unlist(aa[paste0('monthly_GQ' , "_" , as.character(i))]))/ unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)]), 0))
+    clusters_voronoi[paste0('monthly_unmet_IRRIG_share' , "_" , as.character(i), "_", timestep)] <- as.numeric(ifelse((unlist(aa[paste0('monthly_GQ' , "_" , as.character(i), "_", timestep)]) < unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)]))==TRUE, (unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)]) - unlist(aa[paste0('monthly_GQ' , "_" , as.character(i), "_", timestep)]))/ unlist(aa[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)]), 0))
     
   }}
 
 aa <- clusters_voronoi
 aa$geometry=NULL
+aa$geom=NULL
 
-clusters_voronoi[paste0('yearly_IRREQ' , "_", timestep)] <- rowSums(dplyr::select(aa, starts_with("monthly_IRREQ") & contains(timestep)))
+clusters_voronoi[paste0('yearly_IRREQ' , "_", timestep)] <- rowSums(dplyr::select(aa, starts_with("monthly_IRREQ") & contains(as.character(timestep))))
 
 }
 

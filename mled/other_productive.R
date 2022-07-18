@@ -1,3 +1,8 @@
+
+## This R-script:
+##      1) calculates SMEs / non-farm micro enterprises electricity demand at each time step based on an adjustment factor of residential demand based on roads availability, market accessibility, and employment rates at each cluster
+
+
 # calculate paved road density in each cluster 
 clusters$roadslenght = exact_extract(roads, clusters, "mean")
 
@@ -46,11 +51,11 @@ PCs$PCav <- scales::rescale(PCs$PCav, to = range_smes_markup)
 
 #########
 
-clusters_productive = dplyr::select(clusters, id, starts_with("PerHHD_")) %>% as.data.frame()
+for (timestep in planning_year){
+
+clusters_productive = dplyr::select(clusters, id, (starts_with("PerHHD_") & contains(as.character(timestep)))) %>% as.data.frame()
 clusters_productive$geom= NULL
 clusters_productive$geometry=NULL
-clusters_productive$PerHHD_tt = NULL
-clusters_productive$PerHHD_tt_avg = NULL
 
 clusters_productive = dplyr::select(clusters_productive, contains("monthly"))
 
@@ -58,15 +63,17 @@ clusters_productive = PCs$PCav * clusters_productive
 
 colnames(clusters_productive) <- gsub("PerHHD_tt", "residual_productive_tt", colnames(clusters_productive))
 
-clusters <- bind_cols(clusters, clusters_productive)
-
-aa <- clusters
+aa <- clusters_productive
 aa$geom=NULL
 aa$geometry=NULL
 
 out = aa %>% dplyr::select(starts_with("residual_productive_tt_")) %>% rowSums(.)
 
-clusters$residual_productive_tt = out
+clusters <- bind_cols(clusters, clusters_productive)
 
-save.image(paste0("results/", countrystudy, "/clusters_other_productive.Rdata"))
+clusters[paste0('residual_productive_tt_', timestep)] <- out
+
+}
+
+save.image(paste0(processed_folder, "clusters_other_productive.Rdata"))
 
