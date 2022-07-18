@@ -70,3 +70,16 @@ mled/results/zambia/ely_cons_1_km.gri
 mled/todo.txt
 mled/uploader.R
 *.Rdata
+watercrop/.Rhistory
+watercrop/Dati input/cru_ts4.05.1981.1990.pet.dat.nc
+watercrop/Dati input/cru_ts4.05.1981.1990.pre.dat.nc
+watercrop/Dati input/cru_ts4.05.1991.2000.pet.dat.nc
+watercrop/Dati input/cru_ts4.05.1991.2000.pre.dat.nc
+watercrop/Dati input/cru_ts4.05.2001.2010.pet.dat.nc
+watercrop/Dati input/cru_ts4.05.2001.2010.pre.dat.nc
+watercrop/Dati input/cru_ts4.05.2011.2020.pet.dat.nc
+watercrop/Dati input/cru_ts4.05.2011.2020.pre.dat.nc
+watercrop/Dati input/ET_1981_2020.mat
+watercrop/Dati input/ET_1981_2020.txt
+watercrop/Dati input/P_1981_2020.mat
+watercrop/Dati input/P_1981_2020.txt

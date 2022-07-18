@@ -182,9 +182,9 @@ for (i in 1:12){
   
   v = (pull(aa[paste0("q", as.character(i))]) / aa$npumps) / (3600 * pi * (pipe_diameter/2)^2)
   
-  delta_p_psi <- ((0.025 * v^2 * pull(aa["surfw_dist"])) / (2 * pipe_diameter)) * 0.145
+  delta_p_psi <- ((0.1 * v^2 * pull(aa["surfw_dist"]) * 1000 * 1) / (2 * pipe_diameter)) 
   
-  clusters[paste0("surfw_w", as.character(i))] = ifelse((clusters$npumps>0 & is.finite(clusters$surfw_dist)), ((delta_p_psi * (pull(aa[paste0("q", as.character(i))]) / aa$npumps) / 0.22) / (1717*eta_pump*eta_motor)) * 0.746, 0)
+  clusters[paste0("surfw_w", as.character(i))] = ifelse((clusters$npumps>0 & is.finite(clusters$surfw_dist)), ((delta_p_psi * (pull(aa[paste0("q", as.character(i))]) / aa$npumps)) / (3.6*10^6) / eta_pump/eta_motor) /100, 0)
   
   aa <- clusters
   aa$geometry=NULL

@@ -170,7 +170,7 @@ rainfed <- list.files(paste0(input_folder, "watercrop"), full.names = T, pattern
 # Country-specific data
 #####################
 
-clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) %>% sample_n(100)
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
 clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters_centroids <- st_centroid(clusters)

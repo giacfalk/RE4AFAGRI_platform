@@ -21,7 +21,7 @@ downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resol
 countrystudy <- "zambia" # country to run M-LED on
 exclude_countries <- paste("rwanda", "nigeria", "zimbabwe", sep="|") # countries in the database files to exclude from the current run
 
-planning_year = seq(2020, 2050, 10) # time steps and horizon year to make projections
+planning_year = seq(2020, 2060, 10) # time steps and horizon year to make projections
 
 ######################
 # scenarios
