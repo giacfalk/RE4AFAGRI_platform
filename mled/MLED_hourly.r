@@ -1,6 +1,6 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
 # v2 (LEAP_RE)
-# 13/06/2022
+# 19/07/2022
 
 ####
 # system parameters
@@ -13,7 +13,7 @@ email<- "giacomo.falchetta@gmail.com" # NB: need to have previously enabled it t
 
 #
 
-download_data <- T # flag: download the M-LED database? Type "F" if you already have done so previously.
+download_data <- F # flag: download the M-LED database? Type "F" if you already have done so previously.
 
 downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)? Improves accuracy but slows running time
 
@@ -44,13 +44,15 @@ output_hourly_resolution <- F  # produce hourly load curves for each month. if f
 
 no_productive_demand_in_small_clusters <- T
 
-groundwater_sustainability_contraint <- F # impose limit on groundwater pumping based on monthly recharge
-
 buffers_cropland_distance <- T # do not include agricultural loads from cropland distant more than n km (customisable in scenario file) from cluster centroid 
 
 field_size_contraint <- T # consider only small farmland patches (smallholder farming)
 
 process_already_irrigated_crops <- F # crop processing: include energy demand to process yield in already irrigated land
+
+##############
+
+groundwater_sustainability_contraint <- F # impose limit on groundwater pumping based on monthly recharge
 
 water_tank_storage <- T # water storage is possible
 
@@ -121,9 +123,9 @@ source("cleaner.R")
 
 # Write output for soft-linking into OnSSET and NEST and for online visualisation
 
-demand_fields <- apply(expand.grid(c("PerHHD_tt", "residual_productive_tt", "er_hc_tt", "er_sch_tt", "er_kwh_tt", "kwh_cp_tt", "mining_kwh_tt", "other_tt"), as.character(planning_year)), 1, paste, collapse="_")
+demand_fields <- c("residential_tt", "residential_tt_monthly", "nonfarm_smes_tt", "nonfarm_smes_tt_monthly", "healthcare_tt", "healthcare_tt_monthly", "education_tt", "education_tt_monthly", "water_pumping", "crop_processing_tt", "mining_kwh_tt", "other_tt")
 
-clusters_onsset <- dplyr::select(clusters, id, starts_with("pop"), contains("isurban"), starts_with("gdp"), all_of(demand_fields))
+clusters_onsset <- dplyr::select(clusters, id, starts_with("pop"), contains("isurban"), starts_with("gdp"), contains(demand_fields) & !contains("surface"))
 
 clusters_onsset[is.na(clusters_onsset)] <- 0
 

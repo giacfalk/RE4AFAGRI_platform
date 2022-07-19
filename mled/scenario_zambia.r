@@ -113,6 +113,9 @@ minutes_cluster <- 180 # minutes of travel time around each settlement to create
 # Assumed load curves
 #####################
 
+# monthly redistribution of demand for sectors modeled yearly (mining and "other")
+share_demand_by_month_other_sectors <- rep(1/12, 12)
+
 # crop processing
 load_curve_cp = c(0, 0, 0, 0, 0, 0, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0.0833, 0, 0, 0, 0, 0, 0)
 
@@ -180,7 +183,7 @@ rainfed <- list.files(paste0(input_folder, "watercrop"), full.names = T, pattern
 # Country-specific data
 #####################
 
-clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326)
+clusters <- read_sf(find_it("clusters_Zambia_GRID3_above5population.gpkg"), crs=4326) #%>% sample_n(1000)
 clusters <- filter(clusters, pop_start_worldpop>10)
 
 clusters_centroids <- st_centroid(clusters)
@@ -209,11 +212,13 @@ population_baseline <- raster(find_it("ZMB_population_v1_0_gridded.tif"))
 gdp_baseline <- stack(find_it(paste0("gdp_", scenarios$ssp[scenario], "soc_10km_2010-2100.nc")))[[2]]
 gdp_baseline <- mask_raster_to_polygon(gdp_baseline, gadm0)
 
-# urbanisation
-urban_baseline <- list.files(path=paste0(input_folder, "UrbanFraction_1km_GEOTIFF_Projections_SSPs1-5_2010-2100_v1"), recursive = T, pattern=scenarios$ssp[scenario], full.names = T)
 
-urban_baseline <- stack(lapply(urban_baseline, raster))
-urban_baseline <- urban_baseline[[2]]
+# urbanisation
+
+#source("ghs_smod_project.R")
+
+urban_baseline <- stack(find_it("smod_projected_2010_2060.tif"))
+urban_baseline <- urban_baseline[[3]]
 
 # current and future cropping patterns
 cropping_baseline = ncdf4::nc_open(find_it(paste0(scenarios$rcp[scenario], 'soc_miroc5_landuse-15crops_annual_2006_2099.nc')))
@@ -321,7 +326,7 @@ z = read_xlsx(paste0(input_folder, "interp_surface_cost/smooth_c.xlsx"), col_nam
 energy_crops = read.csv(find_it('crop_processing.csv'))
 
 # Survey data
-dhs <- empl_wealth <- read_sf(paste0(input_folder, 'sdr_subnational_data_2022-02-07/sdr_exports.gdb'))
+dhs <- empl_wealth <- read_sf(find_it("sdr_subnational_data_dhs_2018.shp"))
 dhs <- empl_wealth <- filter(dhs, dhs$ISO==countrycode(countryiso3, "iso3c", "iso2c"))
 
 # Classifying schools and healthcare facilities

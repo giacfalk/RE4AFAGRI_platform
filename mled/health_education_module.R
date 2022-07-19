@@ -13,12 +13,29 @@ clusters$beds_2 <- lengths(st_intersects(clusters_voronoi, health %>% filter(Tie
 clusters$beds_3 <- lengths(st_intersects(clusters_voronoi, health %>% filter(Tier==3)))
 clusters$beds_4 <- lengths(st_intersects(clusters_voronoi, health %>% filter(Tier==4)))
 
+# adjust to fill (potential) missing data
+
+clusters$beds_1 <- ifelse(clusters$population>50 & clusters$beds_1==0, 1, clusters$beds_1)
+clusters$beds_2 <- ifelse(clusters$population>100 & clusters$beds_2==0, 1, clusters$beds_2)
+clusters$beds_3 <- ifelse(clusters$population>500 & clusters$beds_3==0 & clusters$isurban==1, 1, clusters$beds_3)
+clusters$beds_4 <- ifelse(clusters$population>1000 & clusters$beds_4==0 & clusters$isurban==1, 1, clusters$beds_4)
+
+#
+
 clusters$beds_1 <- clusters$beds_1 * 1  
 clusters$beds_2 <- clusters$beds_2 * beds_tier2
 clusters$beds_3 <- clusters$beds_3 * beds_tier3
 clusters$beds_4 <- clusters$beds_4 * beds_tier4
 
-clusters$schools <- lengths(st_intersects(clusters_voronoi, primaryschools)) * pupils_per_school
+clusters$schools <- lengths(st_intersects(clusters_voronoi, primaryschools)) 
+
+# adjust to fill (potential) missing data
+
+clusters$schools <- ifelse(clusters$population>100 & clusters$schools==0, 1, clusters$schools)
+
+clusters$schools <- clusters$schools * pupils_per_school
+
+#
 
 for (timestep in planning_year){
   

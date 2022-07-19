@@ -208,8 +208,8 @@ aa <- clusters
 aa$geometry=NULL
 aa$geom=NULL
 
-clusters[paste0('er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,grep("^er_kwh", colnames(aa)) & grep(timestep, colnames(aa))], na.rm = T))
-clusters[paste0('surface_er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,grep("^surface_er_kwh", colnames(aa)) & grep(timestep, colnames(aa))], na.rm = T))
+clusters[paste0('er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,grepl("^er_kwh", colnames(aa)) & grepl(timestep, colnames(aa)) & !grepl("surface", colnames(aa))], na.rm = T))
+clusters[paste0('surface_er_kwh_tt', "_", timestep)] <- as.numeric(rowSums(aa[,grepl("^surface_er_kwh", colnames(aa)) & grepl(timestep, colnames(aa))], na.rm = T))
 
 aa <- clusters
 aa$geometry=NULL
@@ -222,9 +222,17 @@ aa <- clusters
 aa$geometry=NULL
 aa$geom=NULL
 
-clusters[paste0('which_pumping', "_", timestep)] <- "Neither possible"
-clusters[paste0('which_pumping', "_", timestep)][pull(aa[paste0('er_kwh_tt', "_", timestep)])<pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])] <- "Ground water pumping"
-clusters[paste0('which_pumping', "_", timestep)][pull(aa[paste0('surface_er_kwh_tt', "_", timestep)])<pull(aa[paste0('er_kwh_tt', "_", timestep)])] <- "Surface water pumping"
+filter_a <- (pull(aa[paste0('er_kwh_tt', "_", timestep)]) < pull(aa[paste0('surface_er_kwh_tt', "_", timestep)]))
+filter_a <- ifelse(is.na(filter_a), FALSE, filter_a)
+
+filter_b <- (pull(aa[paste0('surface_er_kwh_tt', "_", timestep)]) < pull(aa[paste0('er_kwh_tt', "_", timestep)]))
+filter_b <- ifelse(is.na(filter_b), FALSE, filter_b)
+
+aa[paste0('which_pumping', "_", timestep)] <- "Neither possible"
+aa[paste0('which_pumping', "_", timestep)][filter_a,] <- "Ground water pumping"
+aa[paste0('which_pumping', "_", timestep)][filter_b,] <- "Surface water pumping"
+
+clusters[paste0('which_pumping', "_", timestep)] <- aa[paste0('which_pumping', "_", timestep)] 
 
 for (i in 1:12){
   
@@ -265,4 +273,4 @@ for (k in 1:12){
 
 }
 
-save.image(paste0("results/", countrystudy, "/clusters_pumping_module.Rdata"))
+save.image(paste0(processed_folder, "clusters_pumping_module.Rdata"))

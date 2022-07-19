@@ -105,16 +105,15 @@ clusters <- bind_cols(clusters, wealth_baseline)
 
 # gridded urbanisation
 
+clusters$isurban <- exact_extract(urban_baseline, clusters, "sum")
 clusters$isurban <- ifelse(clusters$isurban>0, 1, 0)
 
-urban_future<- list.files(path=paste0(input_folder, "UrbanFraction_1km_GEOTIFF_Projections_SSPs1-5_2010-2100_v1"), recursive = T, pattern=scenarios$ssp[scenario], full.names = T)
-
-urban_future <- stack(lapply(urban_future, raster))
-urban_future <- urban_future[[grep(paste(planning_year, collapse="|"), names(urban_future))]]
+urban_future <- stack(find_it("smod_projected_2010_2060.tif"))
+names(urban_future) <- c(2010, 2015, 2020, 2025, 2030, 2040, 2050, 2060)
 
 for (year in seq(planning_year[2], last(planning_year), 10)){
   
-  clusters[paste0("isurban_future_", year)] <-  ifelse(exact_extract(urban_future[[grep(year, names(urban_future))]], clusters, "max")>0.01, 1, 0)
+  clusters[paste0("isurban_future_", year)] <-  ifelse(exact_extract(urban_future[[grep(year, names(urban_future))]], clusters, "sum")>0, 1, 0)
   
   aa <- clusters
   aa$geom <- NULL

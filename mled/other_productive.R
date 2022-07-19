@@ -12,8 +12,8 @@ clusters$traveltime = exact_extract(traveltime, clusters, 'mean')
 # calculate employment rate in each cluster
 empl_wealth <- dplyr::select(empl_wealth, (starts_with("EM") | starts_with("id")))
 
-empl_wealth_1 <- fasterize::fasterize(empl_wealth, traveltime, "EMEMPLWTOT", "first")
-empl_wealth_2 <- fasterize::fasterize(empl_wealth, traveltime, "EMEMPLMTOT", "first")
+empl_wealth_1 <- fasterize::fasterize(empl_wealth, traveltime, "EMEMPLWEMC", "first")
+empl_wealth_2 <- fasterize::fasterize(empl_wealth, traveltime, "EMEMPLMEMC", "first")
 
 clusters$EMEMPLWEMC = exact_extract(traveltime, clusters, 'mean') / 100
 clusters$EMEMPLMEMC = exact_extract(traveltime, clusters, 'mean') / 100

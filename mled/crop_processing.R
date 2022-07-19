@@ -249,11 +249,11 @@ for (z in 1:12){
   
   aa <- aa %>% dplyr::select(starts_with('kwh_cp') & contains(as.character(timestep))) %>% dplyr::select(ends_with(paste0('_' , as.character(z), "_", timestep))) %>% mutate(a=rowSums(., na.rm = T))
   
-  clusters = clusters %>% mutate(!!as.name(paste0('monthly_kwh_cropproc', "_" , as.character(z), "_", timestep)) := as.vector(aa$a))
+  clusters = clusters %>% mutate(!!as.name(paste0('crop_processing_tt_monthly', "_" , as.character(z), "_", timestep)) := as.vector(aa$a))
   
 }
 
-# monthly_kwh_cropproc nel mese m / (potenza della macchina: assunta / numero di ore operazionali) = numero di macchine necessarie
+# crop_processing_tt_monthly nel mese m / (potenza della macchina: assunta / numero di ore operazionali) = numero di macchine necessarie
 
 gc()
 
@@ -303,6 +303,8 @@ for (X in as.vector(energy_crops[,1])){
 }}
 
 
+###
+
 
 if (output_hourly_resolution==T){
   
@@ -315,7 +317,7 @@ if (output_hourly_resolution==T){
     aa$geometry=NULL
     
     
-    clusters[paste0('kwh_cropproc_tt_', as.character(k))] = pull(aa[paste0('monthly_kwh_cropproc' , "_" , as.character(k))])/30
+    clusters[paste0('kwh_cropproc_tt_', as.character(k))] = pull(aa[paste0('crop_processing_tt_monthly' , "_" , as.character(k))])/30
     
   }
   

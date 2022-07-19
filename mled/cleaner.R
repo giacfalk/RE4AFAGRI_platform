@@ -3,6 +3,8 @@
 ##      1) applies some constraints specified in the main M-LED file to cap electricity demand
 
 ##      2) generate a summary figure of total electricity load per sector at each time step
+##      3) renames demand fields
+
 
 if (no_productive_demand_in_small_clusters == T){
   
@@ -34,6 +36,21 @@ for (timestep in planning_year[-1]){
 
   clusters[paste0('other_tt' , "_", timestep)] <- (pull(aa[paste0('other_tt' , "_", as.character(timestep-10))])) * (1 + ((pull(aa[paste0("gdp_capita_", timestep)]) - clusters$gdp_capita_2020) / clusters$gdp_capita_2020))
 
+}
+
+# make mining and other "monthly"
+
+for (m in 1:12){
+  
+  aa <- clusters
+  aa$geometry=NULL
+  aa$geom=NULL
+  
+  clusters[paste0('mining_kwh_tt' ,"_monthly_" , as.character(m), "_",  first(planning_year))] = pull(aa[paste0('mining_kwh_tt_', first(planning_year))]) * share_demand_by_month_other_sectors[m]
+  
+  clusters[paste0('other_tt' ,"_monthly_" , as.character(m), "_",  first(planning_year))] = pull(aa[paste0('other_tt_', first(planning_year))]) * share_demand_by_month_other_sectors[m]
+  
+  
 }
 
 
@@ -70,3 +87,16 @@ ggplot(all_sectors)+
   xlab("Year")+
   ylab("National electricity demand (TWh)")+
   ggsci::scale_colour_npg(name="Sector")
+
+###
+
+# rename demand fields
+
+colnames(clusters) <- gsub("PerHHD", "residential", colnames(clusters))
+colnames(clusters) <- gsub("residual_productive", "nonfarm_smes", colnames(clusters))
+colnames(clusters) <- gsub("er_hc", "healthcare", colnames(clusters))
+colnames(clusters) <- gsub("er_sch", "education", colnames(clusters))
+colnames(clusters) <- gsub("er_kwh", "water_pumping", colnames(clusters))
+colnames(clusters) <- gsub("kwh_cp", "crop_processing", colnames(clusters))
+colnames(clusters) <- gsub("mining", "mining", colnames(clusters))
+colnames(clusters) <- gsub("other", "other", colnames(clusters))

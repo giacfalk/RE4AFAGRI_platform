@@ -108,6 +108,7 @@ clusters[paste0('PerHHD_ely_tt' , "_", timestep)] <- pull(aa[paste0('PerHHD_ely'
 
 # make predictions bases on future data
 
+clusters[paste0('population' , "_", planning_year[1])] <- clusters$population
 clusters$population_future <- clusters$population
 
 for (i in (planning_year[1]+1):timestep){
@@ -117,7 +118,7 @@ for (i in (planning_year[1]+1):timestep){
   aa$geom <- NULL
   
   clusters$population_future <-  clusters$population_future*(1+pull(aa[paste0("pop_gr_", i)]))
-  
+  clusters[paste0('population' , "_", timestep)] <- clusters$population_future
 }
 
 clusters$popdens_future <- clusters$population_future / clusters$area
