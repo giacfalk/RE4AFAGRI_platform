@@ -11,14 +11,14 @@
 # #
 # sizes <- data.frame(all_input_files, sizes)
 
-all_input_files_stub <- gsub("F:/MLED_database/", "", all_input_files)
+all_input_files_stub <- gsub("H:/My Drive/MLED_database/", "", all_input_files)
 all_input_files_stub <- gsub("//", "/", all_input_files_stub)
 
 #
 
-setwd("F:/MLED_database/")
+setwd("H:/My Drive/MLED_database")
 
-sapply(file.path("H:/Il mio Drive/MLED_database", dirname(all_input_files_stub)),
+sapply(file.path("H:/My Drive/MLED_database", dirname(all_input_files_stub)),
        dir.create, recursive = TRUE, showWarnings = FALSE)
 
 googledrive::drive_auth()
@@ -39,7 +39,7 @@ if(!is(table, 'try-error')) break
   
 }
 
-write_rds(out, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index.rds")
-write_rds(all_input_files_stub, "D:/OneDrive - IIASA/RE4AFAGRI_platform/mled/download_data_index_stubs.rds")
+write_rds(out, "C:/Users/falchetta/Documents/GitHub/mled/download_data_index.rds")
+write_rds(all_input_files_stub, "C:/Users/falchetta/Documents/GitHub/mled/download_data_index_stubs.rds")
 
-setwd("D:/OneDrive - IIASA/RE4AFAGRI_platform/mled")
+setwd("C:/Users/falchetta/Documents/GitHub/mled")

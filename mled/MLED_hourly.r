@@ -1,6 +1,6 @@
 # MLED - Multi-sectoral Latent Electricity Demand assessment platform
 # v2 (LEAP_RE)
-# 19/07/2022
+# 20/07/2022
 
 ####
 # system parameters
@@ -13,7 +13,7 @@ email<- "giacomo.falchetta@gmail.com" # NB: need to have previously enabled it t
 
 #
 
-download_data <- F # flag: download the M-LED database? Type "F" if you already have done so previously.
+download_data <- T # flag: download the M-LED database? Type "F" if you already have done so previously.
 
 downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)? Improves accuracy but slows running time
 
@@ -42,7 +42,7 @@ scenarios <- expand.grid(planning_year=planning_year, ssp = ssp, rcp = rcp, el_a
 
 output_hourly_resolution <- F  # produce hourly load curves for each month. if false, produce just monthly and yearly totals. ############ NB: bug-fixing in progress, please leave to F
 
-no_productive_demand_in_small_clusters <- T
+no_productive_demand_in_small_clusters <- F # remove any type of productive use of energy in clusters below the "pop_threshold_productive_loads" parameter value
 
 buffers_cropland_distance <- T # do not include agricultural loads from cropland distant more than n km (customisable in scenario file) from cluster centroid 
 
@@ -143,7 +143,7 @@ id <- fasterize(clusters_nest, rainfed[[1]], "id")
 clusters_onsset$id <- exact_extract(id, clusters_onsset, "majority")
 clusters_onsset$geom <- NULL
 clusters_onsset$geometry <- NULL
-clusters_onsset <- dplyr::select(clusters_onsset, id, all_of(demand_fields))
+clusters_onsset <- dplyr::select(clusters_onsset, id, contains(demand_fields) & !contains("surface"))
 
 clusters_onsset <- group_by(clusters_onsset, id) %>% summarise_all(., sum, na.rm=T)
 
@@ -156,7 +156,7 @@ write_sf(clusters_nest, paste0("results/", countrystudy, "_nest_clusters_with_ml
 gadm2$id <- 1:nrow(gadm2)
 id <- fasterize(gadm2, diesel_price, "id")
 
-clusters_onsset <- dplyr::select(clusters, all_of(demand_fields))
+clusters_onsset <- dplyr::select(clusters, contains(demand_fields) & !contains("surface"))
 clusters_onsset$id <- exact_extract(id, clusters_onsset, "majority")
 clusters_onsset$geom <- NULL
 clusters_onsset$geometry <- NULL

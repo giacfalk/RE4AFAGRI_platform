@@ -300,7 +300,7 @@ for (X in as.vector(energy_crops[,1])){
   
   clusters[paste0("kw_tot_machines_" , X, "_", timestep)] <- as.vector(as.matrix(aa %>%  dplyr::select(starts_with(paste0("kw_tot_machines_" , X)) & contains(as.character(timestep)))) %>% rowMax(.) %>% as.numeric())
   
-}}
+} gc() }
 
 
 ###

@@ -19,7 +19,9 @@ if (no_productive_demand_in_small_clusters == T){
 
 # add other demand
 
-other_demand <- zambia_electr_final_demand_tot - sum(clusters$PerHHD_tt_2020, na.rm=T) - sum(clusters$residual_productive_tt_2020, na.rm=T) - sum(clusters$er_hc_tt_2020, na.rm=T) - sum(clusters$er_sch_tt_2020, na.rm=T) - sum(clusters$er_kwh_tt_2020, na.rm=T) - sum(clusters$kwh_cp_tt_2020, na.rm=T) - sum(clusters$mining_kwh_tt_2020, na.rm=T) 
+other_demand <- zambia_electr_final_demand_tot - (sum(clusters$PerHHD_tt_2020, na.rm=T) + sum(clusters$residual_productive_tt_2020, na.rm=T) + sum(clusters$er_hc_tt_2020, na.rm=T) + sum(clusters$er_sch_tt_2020, na.rm=T) + sum(clusters$er_kwh_tt_2020, na.rm=T) + sum(clusters$kwh_cp_tt_2020, na.rm=T) + sum(clusters$mining_kwh_tt_2020, na.rm=T)) 
+
+other_demand <- ifelse(other_demand<0, 0, other_demand)
 
 aa <- clusters
 aa$geom=NULL
@@ -34,24 +36,25 @@ for (timestep in planning_year[-1]){
   aa$geom=NULL
   aa$geometry=NULL
 
-  clusters[paste0('other_tt' , "_", timestep)] <- (pull(aa[paste0('other_tt' , "_", as.character(timestep-10))])) * (1 + ((pull(aa[paste0("gdp_capita_", timestep)]) - clusters$gdp_capita_2020) / clusters$gdp_capita_2020))
+  clusters[paste0('other_tt' , "_", timestep)] <- (pull(aa[paste0('other_tt' , "_", as.character(timestep-10))])) * (1 + ((pull(aa[paste0("gdp_capita_", timestep)]) - pull(aa[paste0("gdp_capita_", (timestep-10))])) / pull(aa[paste0("gdp_capita_", (timestep-10))])))
 
 }
 
 # make mining and other "monthly"
 
+for (timestep in planning_year){
 for (m in 1:12){
   
   aa <- clusters
   aa$geometry=NULL
   aa$geom=NULL
   
-  clusters[paste0('mining_kwh_tt' ,"_monthly_" , as.character(m), "_",  first(planning_year))] = pull(aa[paste0('mining_kwh_tt_', first(planning_year))]) * share_demand_by_month_other_sectors[m]
+  clusters[paste0('mining_kwh_tt' ,"_monthly_" , as.character(m), "_",  timestep)] = pull(aa[paste0('mining_kwh_tt_',  timestep)]) * share_demand_by_month_other_sectors[m]
   
-  clusters[paste0('other_tt' ,"_monthly_" , as.character(m), "_",  first(planning_year))] = pull(aa[paste0('other_tt_', first(planning_year))]) * share_demand_by_month_other_sectors[m]
+  clusters[paste0('other_tt' ,"_monthly_" , as.character(m), "_",  timestep)] = pull(aa[paste0('other_tt_',  timestep)]) * share_demand_by_month_other_sectors[m]
   
   
-}
+}}
 
 
 ####
@@ -82,11 +85,34 @@ substrRight <- function(x, n){
 all_sectors$year <- as.numeric(substrRight(all_sectors$variable, 4))
 all_sectors$variable <- sub('_[^_]*$', "", all_sectors$variable )
 
+#
+
+all_sectors$variable <- gsub("PerHHD", "residential", all_sectors$variable)
+all_sectors$variable <- gsub("residual_productive", "nonfarm_smes", all_sectors$variable)
+all_sectors$variable <- gsub("er_hc", "healthcare", all_sectors$variable)
+all_sectors$variable <- gsub("er_sch", "education", all_sectors$variable)
+all_sectors$variable <- gsub("er_kwh", "water_pumping_", all_sectors$variable)
+all_sectors$variable <- gsub("kwh_cp", "crop_processing", all_sectors$variable)
+all_sectors$variable <- gsub("mining", "mining", all_sectors$variable)
+all_sectors$variable <- gsub("other", "other", all_sectors$variable)
+
+#
+
 ggplot(all_sectors)+
   geom_line(aes(x=year, y=value/1e9, colour=variable, group=variable), size=1)+
   xlab("Year")+
+  ylab("National electricity demand (TWh)")
+
+ggsave("demand_lines.png")
+
+ggplot(all_sectors)+
+  geom_col(aes(x=year, y=value/1e9, fill=variable))+
+  xlab("Year")+
   ylab("National electricity demand (TWh)")+
-  ggsci::scale_colour_npg(name="Sector")
+  facet_wrap(vars(variable), scales = "free")
+
+
+ggsave("demand_bars.png")
 
 ###
 
@@ -96,7 +122,7 @@ colnames(clusters) <- gsub("PerHHD", "residential", colnames(clusters))
 colnames(clusters) <- gsub("residual_productive", "nonfarm_smes", colnames(clusters))
 colnames(clusters) <- gsub("er_hc", "healthcare", colnames(clusters))
 colnames(clusters) <- gsub("er_sch", "education", colnames(clusters))
-colnames(clusters) <- gsub("er_kwh", "water_pumping", colnames(clusters))
+colnames(clusters) <- gsub("er_kwh", "water_pumping_", colnames(clusters))
 colnames(clusters) <- gsub("kwh_cp", "crop_processing", colnames(clusters))
 colnames(clusters) <- gsub("mining", "mining", colnames(clusters))
 colnames(clusters) <- gsub("other", "other", colnames(clusters))

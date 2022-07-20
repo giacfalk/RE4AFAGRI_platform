@@ -77,15 +77,6 @@ clusters[paste0('PerHHD_tt_', first(planning_year))] <-  clusters$current_consum
 
 clusters$PerHHD_ely  <- NULL
 
-for (m in 1:12){
-  
-  aa <- clusters
-  aa$geometry=NULL
-  aa$geom=NULL
-  
-  clusters[paste0('PerHHD_tt' ,"_monthly_" , as.character(m), "_",  first(planning_year))] = pull(aa[paste0('PerHHD_tt_', first(planning_year))]) / 12
-}
-
 
 ############
 
@@ -194,6 +185,35 @@ clusters[paste0('PerHHD_nely_tt' , "_", timestep)] <- as.numeric(out)
 clusters[paste0('PerHHD_tt' , "_", timestep)] <- pull(aa[paste0('PerHHD_ely_tt' , "_", timestep)]) + as.numeric(out)
 
 }
+
+#
+
+fracs <- vector()
+for (m in 1:12){
+  
+  aa <- clusters
+  aa$geometry=NULL
+  aa$geom=NULL
+  
+  fracs[m] <- sum(aa[paste0('PerHHD_tt' ,"_monthly_" , as.character(m), "_",  planning_year[2])], na.rm=T) / sum(aa[paste0('PerHHD_nely_tt_',  planning_year[2])], na.rm=T)
+    
+
+  }
+  
+
+for (timestep in planning_year){
+  for (m in 1:12){
+    
+    aa <- clusters
+    aa$geometry=NULL
+    aa$geom=NULL
+    
+    clusters[paste0('PerHHD_tt' ,"_monthly_" , as.character(m), "_",  timestep)] = pull(aa[paste0('PerHHD_tt_', timestep)]) * fracs[m]
+    
+  }}
+
+###############################################
+
 
 if (output_hourly_resolution==F){
   

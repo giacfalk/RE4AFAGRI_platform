@@ -67,11 +67,9 @@ aa <- clusters_productive
 aa$geom=NULL
 aa$geometry=NULL
 
-out = aa %>% dplyr::select(starts_with("residual_productive_tt_")) %>% rowSums(.)
+clusters_productive[paste0('residual_productive_tt_', timestep)] <- rowSums(aa, na.rm=T)
 
 clusters <- bind_cols(clusters, clusters_productive)
-
-clusters[paste0('residual_productive_tt_', timestep)] <- out
 
 }
 
