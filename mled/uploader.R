@@ -39,7 +39,7 @@ if(!is(table, 'try-error')) break
   
 }
 
-write_rds(out, "C:/Users/falchetta/Documents/GitHub/mled/download_data_index.rds")
+  write_rds(out, "C:/Users/falchetta/Documents/GitHub/mled/download_data_index.rds")
 write_rds(all_input_files_stub, "C:/Users/falchetta/Documents/GitHub/mled/download_data_index_stubs.rds")
 
 setwd("C:/Users/falchetta/Documents/GitHub/mled")
