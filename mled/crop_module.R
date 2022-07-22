@@ -63,9 +63,16 @@ rainfed <- rainfed_sum
 
 for (timestep in planning_year){
 
+  markup <- stack(find_it(paste0("markup_", ifelse(scenarios$ssp[scenario]=="ssp2", 245, 585), ".nc")))[[ifelse(timestep==2020, 1, ifelse(timestep==2030, 10, ifelse(timestep==2040, 20, 20)))]]
+  
+  clusters_voronoi$markup <- exact_extract(markup, clusters_voronoi, "median")
+  clusters_voronoi$markup <- ifelse(clusters_voronoi$markup>1, 1, clusters_voronoi$markup)
+  
+
 for (i in 1:12){
   
-  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * irrigated_cropland_share_target * (match(timestep, planning_year) / length(planning_year))
+  clusters_voronoi[paste0('monthly_IRREQ' , "_" , as.character(i), "_", timestep)] <- exact_extract(rainfed[[i]], clusters_voronoi, "sum") * (1 + clusters$markup) * irrigated_cropland_share_target * (match(timestep, planning_year) / length(planning_year))
+  
 }
 
 

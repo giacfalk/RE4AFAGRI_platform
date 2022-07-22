@@ -11,6 +11,47 @@
 # #
 # sizes <- data.frame(all_input_files, sizes)
 
+all_input_files <- list.files(path=input_folder, recursive = T, full.names = T)
+
+all_input_files <- all_input_files[grep(exclude_countries, all_input_files,ignore.case=TRUE, invert = TRUE)]
+
+all_input_files <- all_input_files[grep("\\.ini$|\\.docx$|\\.png$|\\.r$|\\.mat$|r_tmp_|results|\\.pyc$|\\.pdf$|\\.rds$|\\.rdata$|\\.dbf$|\\.xml$", all_input_files,ignore.case=TRUE, invert = TRUE)] 
+
+all_input_files <- gsub("//", "/", all_input_files)
+
+all_input_files_basename <- basename(all_input_files)
+
+user.input <- function(prompt) {
+  x= readline(prompt)
+  return(x)
+}
+
+
+find_it <- function(X){
+  
+  out_file <- all_input_files[str_detect(all_input_files_basename, paste0('\\b', X, '\\b'))]
+  
+  if(length(out_file)>1){
+    
+    beep()
+    print(out_file)
+    pick_one <- user.input("Which one: ")
+    return(out_file[as.numeric(pick_one)])
+    
+  } 
+  
+  if(length(out_file)==0){
+    
+    beep()
+    stop("Cannot find file")
+    
+  } else {
+    
+    return(out_file)
+    
+  }}
+
+
 all_input_files_stub <- gsub("H:/My Drive/MLED_database/", "", all_input_files)
 all_input_files_stub <- gsub("//", "/", all_input_files_stub)
 
