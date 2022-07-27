@@ -5,7 +5,7 @@
 ####
 # system parameters
 
-setwd("C:/Users/falchetta/Documents/GitHub/mled") # path of the cloned M-LED GitHub repository
+setwd("D:/OneDrive - IIASA/RE4AFAGRI_platform/mled") # path of the cloned M-LED GitHub repository
 
 db_folder = 'H:/My Drive/MLED_database' # path to (or where to download) the M-LED database
 
@@ -13,7 +13,7 @@ email<- "giacomo.falchetta@gmail.com" # NB: need to have previously enabled it t
 
 #
 
-download_data <- T # flag: download the M-LED database? Type "F" if you already have done so previously.
+download_data <- F # flag: download the M-LED database? Type "F" if you already have done so previously.
 
 downscale_cropland <- F # flag: downscale the MapSPAM cropland data (10 km resolution) using the Digital Earth Africa crop mask (10 m resolution)? Improves accuracy but slows running time
 
@@ -148,6 +148,7 @@ clusters_onsset <- dplyr::select(clusters_onsset, id, contains(demand_fields) & 
 clusters_onsset <- group_by(clusters_onsset, id) %>% summarise_all(., sum, na.rm=T)
 
 clusters_nest <- merge(clusters_nest, clusters_onsset, "id")
+clusters_nest$id <- NULL
 
 write_sf(clusters_nest, paste0("results/", countrystudy, "_nest_clusters_with_mled_loads_", paste(scenarios[scenario,], collapse = "_"), ".gpkg"))
 
