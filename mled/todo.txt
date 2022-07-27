@@ -1,7 +1,8 @@
 #####
 
-# Mid june to November timeline
-- Enable output_hourly_resolution option in all scripts
+# Mid August to November timeline
+ - Modulate growth of mining demand
+ - Growth across time steps is currently *linear*
  - What to do with remote cropland -> currently excluded from all analysis. Consider what cropland (near/remote/both to include in solar pumps and welfare analysis)
 - Downscaling cropland -> mmmmh
 - Adjust all parameters and assumptions based on focus group discussions -> Notes 12.1 [ADE's work]
@@ -11,6 +12,7 @@
     groundwater recharge -> climate change (RCPS) [ISIMIP]
     socio-econoic development  (SSPs) [ISIMIP]
     (crop change -> but would need to first feed it into WaterCrop...)
+- Enable output_hourly_resolution option in all scripts
 
  ## December  - January 2023 timeline
 
